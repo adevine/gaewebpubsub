@@ -4,7 +4,7 @@
 *.iml
 *.iws
 .DS_Store
-*/target/*
+target
 
 # Package Files #
 *.jar
