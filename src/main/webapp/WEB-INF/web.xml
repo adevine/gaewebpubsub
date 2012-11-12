@@ -14,6 +14,46 @@
 
     <servlet-mapping>
         <servlet-name>connectServlet</servlet-name>
-        <url-pattern>/opentopic/*</url-pattern>
+        <url-pattern>/connect/*</url-pattern>
     </servlet-mapping>
+
+    <servlet>
+        <servlet-name>sendMessageServlet</servlet-name>
+        <servlet-class>org.gaewebpubsub.web.SendMessageServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>sendMessageServlet</servlet-name>
+        <url-pattern>/send/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>disconnectServlet</servlet-name>
+        <servlet-class>org.gaewebpubsub.web.DisconnectServlet</servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>disconnectServlet</servlet-name>
+        <url-pattern>/disconnect/*</url-pattern>
+    </servlet-mapping>
+
+    <filter>
+        <filter-name>validationFilter</filter-name>
+        <filter-class>org.gaewebpubsub.web.ValidationFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>validationFilter</filter-name>
+        <servlet-name>connectServlet</servlet-name>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>validationFilter</filter-name>
+        <servlet-name>sendMessageServlet</servlet-name>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>validationFilter</filter-name>
+        <servlet-name>disconnectServlet</servlet-name>
+    </filter-mapping>
 </web-app>
