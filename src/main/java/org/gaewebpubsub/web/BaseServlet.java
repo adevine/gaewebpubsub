@@ -24,6 +24,8 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
+import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -37,6 +39,7 @@ public class BaseServlet extends HttpServlet {
     public static final String USER_KEY_PARAM = "userKey";
     public static final String USER_NAME_PARAM = "userName";
     public static final String TOPIC_LIFETIME_PARAM = "topicLifetime";
+    public static final String SELF_NOTIFY_PARAM = "selfNotify";
     public static final String MESSAGE_PARAM = "message";
 
     public void init(ServletConfig config) throws ServletException {
@@ -70,5 +73,30 @@ public class BaseServlet extends HttpServlet {
             throw new IllegalArgumentException("Empty parameter " + paramName);
         }
         return retVal;
+    }
+
+    protected void debugLog(String format, Object... params) {
+        //TODO - change this back to fine
+        if (log.isLoggable(Level.INFO)) {
+            log.info(String.format(format, params));
+        }
+    }
+
+    /**
+     * Helper method gets the base URL of a request.
+     *
+     * @param request The incoming request.
+     * @return The base URL of the request (i.e., the request without the final file)
+     */
+    public static String getBaseUrl(HttpServletRequest request) {
+        try {
+            URL baseUrl = new URL(request.getScheme(),
+                                  request.getServerName(),
+                                  request.getServerPort(),
+                                  request.getContextPath());
+            return baseUrl.toExternalForm();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

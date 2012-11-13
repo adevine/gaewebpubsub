@@ -17,6 +17,8 @@ package org.gaewebpubsub.services;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
+import org.gaewebpubsub.util.Escapes;
+import org.gaewebpubsub.util.SecureHash;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -34,8 +36,11 @@ public class ChannelApiTopicManager implements TopicManager {
 
     public void setTopicPersister(TopicPersister topicPersister) { this.topicPersister = topicPersister; }
 
-    public String connectUserToTopic(String topicKey, String userKey, String userName, int topicLifetime)
-            throws TopicAccessException, SubscriberNotificationException {
+    public String connectUserToTopic(String topicKey,
+                                     String userKey,
+                                     String userName,
+                                     int topicLifetime,
+                                     boolean selfNotify) throws TopicAccessException, SubscriberNotificationException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
@@ -46,13 +51,13 @@ public class ChannelApiTopicManager implements TopicManager {
         TopicPersister.SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);
         if (thisUsersData == null) {
             String channelToken = channelService.createChannel(getClientId(topicKey, userKey), topicLifetime);
-            topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken);
-            thisUsersData = new TopicPersister.SubscriberData(userKey, userName, channelToken);
+            topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken, selfNotify);
+            thisUsersData = new TopicPersister.SubscriberData(userKey, userName, channelToken, selfNotify);
         }
 
         //notify OTHER users that this user was added
-        notifyOtherSubscribers(topicKey, userKey, currentSubscribers,
-                               toJson("eventType", "connect", "sender", userName));
+        notifySubscribers(topicKey, userKey, currentSubscribers, false /* never self notify on connect */,
+                          toJson("eventType", "connect", "sender", userName));
 
         return thisUsersData.channelToken;
     }
@@ -67,11 +72,11 @@ public class ChannelApiTopicManager implements TopicManager {
         TopicPersister.SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
         if (sendersData != null) {
             int messageNum = topicPersister.persistMessage(topicKey, userKey, sendersData.userName, message);
-            notifyOtherSubscribers(topicKey, userKey, subscribers,
-                                   toJson("eventType", "message",
-                                          "sender", sendersData.userName,
-                                          "messageNumber", Integer.toString(messageNum),
-                                          "message", message));
+            notifySubscribers(topicKey, userKey, subscribers, sendersData.selfNotify,
+                              toJson("eventType", "message",
+                                     "sender", sendersData.userName,
+                                     "messageNumber", Integer.toString(messageNum),
+                                     "message", message));
         }
     }
 
@@ -82,8 +87,8 @@ public class ChannelApiTopicManager implements TopicManager {
         List<TopicPersister.SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
         TopicPersister.SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
         if (sendersData != null) {
-            notifyOtherSubscribers(topicKey, userKey, subscribers,
-                                   toJson("eventType", "disconnect", "sender", sendersData.userName));
+            notifySubscribers(topicKey, userKey, subscribers, false, /* no need to self notify on disconnect */
+                              toJson("eventType", "disconnect", "sender", sendersData.userName));
             topicPersister.unsubscribeUserFromTopic(topicKey, userKey);
         }
     }
@@ -98,12 +103,13 @@ public class ChannelApiTopicManager implements TopicManager {
         return null;
     }
 
-    protected void notifyOtherSubscribers(String topicKey,
-                                          String userKey,
-                                          List<TopicPersister.SubscriberData> subscribers,
-                                          String jsonMessage) throws SubscriberNotificationException {
+    protected void notifySubscribers(String topicKey,
+                                     String userKey,
+                                     List<TopicPersister.SubscriberData> subscribers,
+                                     boolean selfNotify,
+                                     String jsonMessage) throws SubscriberNotificationException {
         for (TopicPersister.SubscriberData subscriber : subscribers) {
-            if (!userKey.equals(subscriber.userKey)) {
+            if (selfNotify || !userKey.equals(subscriber.userKey)) {
                 String subscribersClientId = getClientId(topicKey, subscriber.userKey);
                 try {
                     channelService.sendMessage(new ChannelMessage(subscribersClientId, jsonMessage));
@@ -115,7 +121,7 @@ public class ChannelApiTopicManager implements TopicManager {
     }
 
     protected String getClientId(String topicKey, String userKey) {
-        return topicKey + "~~" + userKey;
+        return SecureHash.hash(topicKey + "~~" + userKey);
     }
 
     protected String toJson(String... keysAndValues) {
@@ -125,17 +131,13 @@ public class ChannelApiTopicManager implements TopicManager {
             String key = keysAndValues[i];
             String value = keysAndValues[i + 1];
 
-            retVal.append(escapeJsonString(key)).append(":").append(escapeJsonString(value));
-            if (i < keysAndValues.length) {
+            retVal.append('"').append(Escapes.escapeJavaScriptString(key)).append('"').append(":")
+                    .append('"').append(Escapes.escapeJavaScriptString(value)).append('"');
+            if (i < keysAndValues.length - 2) {
                 retVal.append(",");
             }
         }
         retVal.append("}");
         return retVal.toString();
-    }
-
-    protected String escapeJsonString(String value) {
-        //todo - double check this is right
-        return "\"" + value.replace("\"", "\\\"") + "\"";
     }
 }

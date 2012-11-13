@@ -15,6 +15,8 @@
  */
 package org.gaewebpubsub.web;
 
+import org.gaewebpubsub.util.Escapes;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -22,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.regex.Matcher;
 
 /**
  * ConnectServlet is called when a page includes the "javascript" to start up a connection to a topic. This servlet
@@ -54,11 +57,18 @@ public class ConnectServlet extends BaseServlet {
         } catch (Exception e) {
             //OK, lifetime stays at the default
         }
+        boolean selfNotify = Boolean.parseBoolean(req.getParameter(SELF_NOTIFY_PARAM)); //defaults to false
 
-        String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName, topicLifetime);
+        debugLog("Connecting with topicKey '%s', userKey '%s', userName '%s', topicLifetime %s, selfNotify %s",
+                 topicKey, userKey, userName, topicLifetime, selfNotify);
 
-        //TODO - get base url
-        resp.getWriter().println(filterConnectTemplate(javascriptTemplate, "TODO_GET_BASE", topicKey, userKey, userChannelToken));
+        String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName,
+                                                                       topicLifetime, selfNotify);
+
+        debugLog("Succeeded getting user channel token %s", userChannelToken);
+
+        resp.getWriter().println(filterConnectTemplate(javascriptTemplate,
+                                                       getBaseUrl(req), topicKey, userKey, userChannelToken));
     }
 
     protected String loadJavascriptTemplate() throws ServletException {
@@ -84,11 +94,14 @@ public class ConnectServlet extends BaseServlet {
     protected String filterConnectTemplate(String template,
                                            String baseUrl, String topicKey, String userKey, String userChannelToken) {
         //TODO - can improve on this
-        //TODO - javascript escape all keys - replace " with \"
-        template = template.replaceAll("@BASE_URL@", baseUrl);
-        template = template.replaceAll("@TOPIC_KEY@", topicKey);
-        template = template.replaceAll("@USER_KEY@", userKey);
-        template = template.replaceAll("@CHANNEL_TOKEN@", userChannelToken);
+        template = template.replaceAll("@BASE_PATH@",
+                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(baseUrl)));
+        template = template.replaceAll("@TOPIC_KEY@",
+                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(topicKey)));
+        template = template.replaceAll("@USER_KEY@",
+                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(userKey)));
+        template = template.replaceAll("@CHANNEL_TOKEN@",
+                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(userChannelToken)));
 
         return template;
     }

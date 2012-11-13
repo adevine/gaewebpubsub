@@ -37,8 +37,11 @@ public class InMemoryTopicPersister implements TopicPersister {
         return true;
     }
 
-    public synchronized boolean addUserToTopic(String topicKey, String userKey, String userName, String channelToken)
-            throws TopicAccessException {
+    public synchronized boolean addUserToTopic(String topicKey,
+                                               String userKey,
+                                               String userName,
+                                               String channelToken,
+                                               boolean selfNotify) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
@@ -60,7 +63,7 @@ public class InMemoryTopicPersister implements TopicPersister {
         }
 
         if (!alreadyAdded) {
-            subscribers.add(new SubscriberData(userKey, userName, channelToken));
+            subscribers.add(new SubscriberData(userKey, userName, channelToken, selfNotify));
         }
 
         return !alreadyAdded;

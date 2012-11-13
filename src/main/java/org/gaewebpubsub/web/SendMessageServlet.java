@@ -32,6 +32,8 @@ public class SendMessageServlet extends BaseServlet {
         String userKey = getRequiredParameter(req, USER_KEY_PARAM, false /* can't be empty */);
         String message = getRequiredParameter(req, MESSAGE_PARAM, true /* CAN be empty */);
 
+        debugLog("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey);
+
         getTopicManager().sendMessage(topicKey, userKey, message);
 
         resp.setStatus(HttpServletResponse.SC_OK);

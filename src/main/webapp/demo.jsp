@@ -14,19 +14,27 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 --%>
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" import="org.gaewebpubsub.util.Escapes" %>
+<%
+  String topicKey = request.getParameter("topicKey");
+  if (topicKey == null) {
+      topicKey = "";
+  } else {
+      topicKey = Escapes.escapeHtml(topicKey);
+  }
+%>
 <html>
 <head>
   <title>GAE Web Pub Sub Demo</title>
 </head>
-<body>
+<body style="font-family: sans-serif">
 <p>
   This page gives a demonstration of the GAE Web Pub Sub functionality.
 </p>
-<form method="post" action="demorun.jsp">
+<form method="post" action="demorun.jsp" onsubmit="return checkInput()">
   <p>
     <label for="topicKey">Enter a topic key</label> or <button type="button" onclick="generateTopicKey()">Generate one</button>:
-    <input id="topicKey" name="topicKey" type="text" size="80" maxlength="128"/>
+    <input id="topicKey" name="topicKey" value="<%=topicKey%>" type="text" size="80" maxlength="128"/>
   </p>
   <p>
     <label for="userName">Enter your name</label>:
@@ -45,6 +53,16 @@
 
   function generateTopicKey() {
       document.getElementById("topicKey").value = generateUuid();
+  }
+
+  function checkInput() {
+      var topicKeyValue = document.getElementById("topicKey").value;
+      var nameValue = document.getElementById("userName").value;
+      if (topicKeyValue.replace(/\s/, "") == "" || nameValue.replace(/\s*/, "") == "") {
+          alert("You must enter a topic key and user name.");
+          return false;
+      }
+      return true;
   }
 </script>
 </body>
