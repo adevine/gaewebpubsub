@@ -13,24 +13,24 @@
    See the License for the specific language governing permissions and
    limitations under the License.
  */
-package services;
+package org.gaewebpubsub.services;
 
 /**
- * This exception is used to indicate when there is an error loading or saving information about a topic.
+ * This exception is used to indicate there was an error notifying other subscribers of messages or events.
  */
-public class TopicAccessException extends RuntimeException {
-    public TopicAccessException() {
+public class SubscriberNotificationException extends RuntimeException {
+    public SubscriberNotificationException() {
     }
 
-    public TopicAccessException(String s) {
+    public SubscriberNotificationException(String s) {
         super(s);
     }
 
-    public TopicAccessException(String s, Throwable throwable) {
+    public SubscriberNotificationException(String s, Throwable throwable) {
         super(s, throwable);
     }
 
-    public TopicAccessException(Throwable throwable) {
+    public SubscriberNotificationException(Throwable throwable) {
         super(throwable);
     }
 }

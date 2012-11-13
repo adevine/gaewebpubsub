@@ -16,9 +16,9 @@
 package org.gaewebpubsub.web;
 
 import com.google.appengine.api.channel.ChannelServiceFactory;
-import services.ChannelApiTopicManager;
-import services.InMemoryTopicPersister;
-import services.TopicManager;
+import org.gaewebpubsub.services.ChannelApiTopicManager;
+import org.gaewebpubsub.services.InMemoryTopicPersister;
+import org.gaewebpubsub.services.TopicManager;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
