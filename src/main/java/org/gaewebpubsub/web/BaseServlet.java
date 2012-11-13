@@ -17,7 +17,7 @@ package org.gaewebpubsub.web;
 
 import com.google.appengine.api.channel.ChannelServiceFactory;
 import org.gaewebpubsub.services.ChannelApiTopicManager;
-import org.gaewebpubsub.services.InMemoryTopicPersister;
+import org.gaewebpubsub.services.DatastoreTopicPersister;
 import org.gaewebpubsub.services.TopicManager;
 
 import javax.servlet.ServletConfig;
@@ -52,7 +52,7 @@ public class BaseServlet extends HttpServlet {
             //for now, just always use a ChannelApiTopicManager
             ChannelApiTopicManager topicManager = new ChannelApiTopicManager();
             topicManager.setChannelService(ChannelServiceFactory.getChannelService());
-            topicManager.setTopicPersister(new InMemoryTopicPersister());
+            topicManager.setTopicPersister(new DatastoreTopicPersister());
             getServletConfig().getServletContext().setAttribute("topicManager", topicManager);
         }
     }
@@ -80,6 +80,11 @@ public class BaseServlet extends HttpServlet {
         if (log.isLoggable(Level.INFO)) {
             log.info(String.format(format, params));
         }
+    }
+
+    protected void exceptionLog(Exception e, String format, Object... params) {
+        log.warning(String.format(format, params));
+        e.printStackTrace();
     }
 
     /**

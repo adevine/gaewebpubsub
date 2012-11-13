@@ -48,7 +48,7 @@ public class Escapes {
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
             switch (c) {
-                case '\'':case '"':case '/':case '\\':
+                case '"':case '/':case '\\':
                     retVal.append('\\').append(c);
                     break;
                 case '\n':

@@ -34,8 +34,12 @@ public class SendMessageServlet extends BaseServlet {
 
         debugLog("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey);
 
-        getTopicManager().sendMessage(topicKey, userKey, message);
-
-        resp.setStatus(HttpServletResponse.SC_OK);
+        try {
+            getTopicManager().sendMessage(topicKey, userKey, message);
+            resp.setStatus(HttpServletResponse.SC_OK);
+        } catch (Exception e) {
+            exceptionLog(e, "Could not send message %s from user %s to topic %s", message);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Could not send message");
+        }
     }
 }

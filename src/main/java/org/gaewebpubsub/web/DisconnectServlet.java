@@ -33,6 +33,12 @@ public class DisconnectServlet extends BaseServlet {
 
         getTopicManager().disconnectUser(topicKey, userKey);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
+        try {
+            getTopicManager().disconnectUser(topicKey, userKey);
+            resp.setStatus(HttpServletResponse.SC_OK);
+        } catch (Exception e) {
+            exceptionLog(e, "Could not disconnect user %s from topic %s", userKey, topicKey);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Could not disconnect user from topic");
+        }
     }
 }
