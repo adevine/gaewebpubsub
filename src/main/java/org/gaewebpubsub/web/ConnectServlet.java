@@ -15,6 +15,7 @@
  */
 package org.gaewebpubsub.web;
 
+import org.gaewebpubsub.services.TopicManager;
 import org.gaewebpubsub.util.Escapes;
 
 import javax.servlet.ServletConfig;
@@ -45,14 +46,14 @@ public class ConnectServlet extends BaseServlet {
         resp.setContentType("text/javascript");
         resp.setCharacterEncoding("UTF-8");
 
-        String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false /* can't be empty */);
-        String userKey = getRequiredParameter(req, USER_KEY_PARAM, false /* can't be empty */);
-        String userName = getRequiredParameter(req, USER_NAME_PARAM, false /* can't be empty */);
-        int topicLifetime = 120; //default 120 mins like the Channel API
+        String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
+        String userKey = getRequiredParameter(req, USER_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
+        String userName = getRequiredParameter(req, USER_NAME_PARAM, false, TopicManager.MAX_KEY_LENGTH);
+        int topicLifetime = TopicManager.DEFAULT_TOPIC_LIFESPAN;
         try {
             int topicLifetimeParamValue = Integer.parseInt(req.getParameter(TOPIC_LIFETIME_PARAM));
             if (topicLifetimeParamValue > 0) {
-                topicLifetime = topicLifetimeParamValue;
+                topicLifetime = Math.min(topicLifetimeParamValue, TopicManager.MAX_TOPIC_LIFESPAN);
             }
         } catch (Exception e) {
             //OK, lifetime stays at the default
@@ -88,7 +89,6 @@ public class ConnectServlet extends BaseServlet {
 
     protected String filterConnectTemplate(String template,
                                            String baseUrl, String topicKey, String userKey, String userChannelToken) {
-        //TODO - can improve on this
         template = template.replaceAll("@BASE_PATH@",
                                        Matcher.quoteReplacement(Escapes.escapeJavaScriptString(baseUrl)));
         template = template.replaceAll("@TOPIC_KEY@",

@@ -21,13 +21,10 @@ import org.gaewebpubsub.util.Escapes;
 import org.gaewebpubsub.util.SecureHash;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  */
 public class ChannelApiTopicManager implements TopicManager {
-    private static final Logger log = Logger.getLogger(ChannelApiTopicManager.class.getName());
-
     protected ChannelService channelService;
 
     protected TopicPersister topicPersister;
@@ -45,7 +42,7 @@ public class ChannelApiTopicManager implements TopicManager {
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
 
-        topicPersister.createTopic(topicKey);
+        topicPersister.createTopic(topicKey, topicLifetime);
         List<TopicPersister.SubscriberData> currentSubscribers = topicPersister.loadTopicSubscribers(topicKey);
 
         TopicPersister.SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);

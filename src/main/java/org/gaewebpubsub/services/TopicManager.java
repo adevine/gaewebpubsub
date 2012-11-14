@@ -19,6 +19,25 @@ package org.gaewebpubsub.services;
  * The topic manager handles creation and message passing of the topic.
  */
 public interface TopicManager {
+    /**
+     * The default topic lifespan is 120 minutes.
+     */
+    public static final int DEFAULT_TOPIC_LIFESPAN = 120;
+
+    /**
+     * Max topic lifespan in minutes, which is equivalent to 24 hours.
+     */
+    public static final int MAX_TOPIC_LIFESPAN = 24 * 60;
+
+    /**
+     * keys and usernames should be less than 128 chars
+     */
+    public static final int MAX_KEY_LENGTH = 128;
+
+    /**
+     * max message length, which is 32K
+     */
+    public static final int MAX_MESSAGE_LENGTH = 32768;
 
     /**
      * Connects a user to a topic. This method either creates a new topic if that topic doesn't yet exist, or if it

@@ -25,7 +25,7 @@ public class InMemoryTopicPersister implements TopicPersister {
 
     private Map<String, List<SubscriberData>> subscribersByTopicKey = new HashMap<String, List<SubscriberData>>();
 
-    public synchronized boolean createTopic(String topicKey) throws TopicAccessException {
+    public synchronized boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
 
         if (topicKeysToMessageNums.containsKey(topicKey)) {

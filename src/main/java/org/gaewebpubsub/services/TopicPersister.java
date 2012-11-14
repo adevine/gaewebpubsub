@@ -45,11 +45,12 @@ public interface TopicPersister {
     /**
      * Creates a topic if one doesn't already exist with the given topicKey.
      *
-     * @param topicKey The unique key of the topic. May not be null or empty.
+     * @param topicKey      The unique key of the topic. May not be null or empty.
+     * @param topicLifetime The time, in minutes, that the topic should live.
      * @return true if the topic was newly created, false if it already exists.
      * @throws TopicAccessException Thrown if the topic could not be created.
      */
-    boolean createTopic(String topicKey) throws TopicAccessException;
+    boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException;
 
     /**
      * Adds the specified user as a subscriber to the given topic if they are not already a subscriber.

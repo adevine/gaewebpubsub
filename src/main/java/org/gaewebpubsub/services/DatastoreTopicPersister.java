@@ -22,7 +22,6 @@ import java.util.*;
 /**
  * The DatastoreTopicPersister uses the App Engine DatastoreService to persist data.
  *
- * TODO - check topicKey, userKey and userName length limits
  * TODO - check that right exceptions are thrown if necessary (like when topic doesn't exist)
  */
 public class DatastoreTopicPersister implements TopicPersister {
@@ -32,11 +31,12 @@ public class DatastoreTopicPersister implements TopicPersister {
 
     //Column names
     public static final String MESSAGE_NUM_PROP = "messageNum";
+    public static final String EXPIRATION_TIME_PROP = "expirationTime";
     public static final String USER_NAME_PROP = "userName";
     public static final String CHANNEL_TOKEN_PROP = "channelToken";
     public static final String SELF_NOTIFY_PROP = "selfNotify";
 
-    public boolean createTopic(String topicKey) throws TopicAccessException {
+    public boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
 
         //create the topic if it doesn't already exist
@@ -50,14 +50,15 @@ public class DatastoreTopicPersister implements TopicPersister {
             try {
                 Entity topicEntity = new Entity(TOPIC_KIND, topicKey);
                 topicEntity.setProperty(MESSAGE_NUM_PROP, 0);
-                //TODO - do I want to persist the topiclifespan?
+                topicEntity.setProperty(EXPIRATION_TIME_PROP, System.currentTimeMillis() + (topicLifetime * 60000L));
                 datastore.put(topicEntity);
+                txn.commit();
                 return true;
             } catch (Exception e) {
                 throw new TopicAccessException("Error saving topic " + topicKey, e);
             }
         } finally {
-            commit(txn);
+            cleanup(txn);
         }
     }
 
@@ -85,12 +86,13 @@ public class DatastoreTopicPersister implements TopicPersister {
                 subscriberEntity.setProperty(CHANNEL_TOKEN_PROP, channelToken);
                 subscriberEntity.setProperty(SELF_NOTIFY_PROP, selfNotify);
                 datastore.put(subscriberEntity);
+                txn.commit();
                 return true;
             } catch (Exception e) {
                 throw new TopicAccessException("Error adding user " + userKey + " to topic " + topicKey, e);
             }
         } finally {
-            commit(txn);
+            cleanup(txn);
         }
     }
 
@@ -124,7 +126,7 @@ public class DatastoreTopicPersister implements TopicPersister {
 
         //TODO - for now, not persisting message, just updating the message num - make saving full message optional
 
-        //TODO - this is definitely a bottleneck - maybe make in order message nums optional
+        //TODO - this is definitely a bottleneck - maybe make monotonically increasing message nums optional
         DatastoreService datastore = getDatastore();
         Transaction txn = datastore.beginTransaction();
         try {
@@ -133,13 +135,14 @@ public class DatastoreTopicPersister implements TopicPersister {
             //update the message num and save
             topicEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum + 1);
             datastore.put(topicEntity);
+            txn.commit();
             return currentMessageNum + 1;
         } catch (EntityNotFoundException enfe) {
             throw new TopicAccessException("Topic " + topicKey + " not found");
         } catch (Exception e) {
             throw new TopicAccessException("Error persisting message to topic " + topicKey, e);
         } finally {
-            commit(txn);
+            cleanup(txn);
         }
     }
 
@@ -152,16 +155,15 @@ public class DatastoreTopicPersister implements TopicPersister {
         try {
             Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
             datastore.delete(subscriberEntity.getKey());
+            txn.commit();
             return true;
         } catch (EntityNotFoundException enfe) {
             return false;
         } catch (Exception e) {
             throw new TopicAccessException("Error unsubscribing user " + userKey + " from topic " + topicKey, e);
         } finally {
-            commit(txn);
+            cleanup(txn);
         }
-
-        //TODO - possibly delete Topic object from datastore if no more subscribers (or mark completed)?
     }
 
     protected DatastoreService getDatastore() {
@@ -176,13 +178,13 @@ public class DatastoreTopicPersister implements TopicPersister {
         return KeyFactory.createKey(topicEntityKey(topicKey), SUBSCRIBER_KIND, userKey);
     }
 
-    protected void commit(Transaction txn) throws TopicAccessException {
-        try {
-            if (txn != null) {
-                txn.commit();
+    protected void cleanup(Transaction txn) {
+        if (txn.isActive()) {
+            try {
+                txn.rollback();
+            } catch (Exception e) {
+                //nothing we can do at this point
             }
-        } catch (Exception e) {
-            throw new TopicAccessException("Could not save data", e);
         }
     }
 }

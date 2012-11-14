@@ -57,7 +57,10 @@ public class BaseServlet extends HttpServlet {
         return (TopicManager) getServletConfig().getServletContext().getAttribute("topicManager");
     }
 
-    protected String getRequiredParameter(HttpServletRequest request, String paramName, boolean canBeEmpty) {
+    protected String getRequiredParameter(HttpServletRequest request,
+                                          String paramName,
+                                          boolean canBeEmpty,
+                                          int maxLength) {
         String retVal = request.getParameter(paramName);
         if (retVal == null) {
             //TODO - is this the right exception to throw? Ideally throwing an exception returns the proper HTTP status code
@@ -65,6 +68,9 @@ public class BaseServlet extends HttpServlet {
         }
         if (!canBeEmpty && retVal.trim().length() == 0)  {
             throw new IllegalArgumentException("Empty parameter " + paramName);
+        }
+        if (retVal.length() >= maxLength) {
+            throw new IllegalArgumentException(paramName + " must have fewer than " + maxLength + " characters");
         }
         return retVal;
     }

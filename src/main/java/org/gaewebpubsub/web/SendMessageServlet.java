@@ -15,6 +15,8 @@
  */
 package org.gaewebpubsub.web;
 
+import org.gaewebpubsub.services.TopicManager;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,9 +30,9 @@ public class SendMessageServlet extends BaseServlet {
         resp.setContentType("text/javascript");
         resp.setCharacterEncoding("UTF-8");
 
-        String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false /* can't be empty */);
-        String userKey = getRequiredParameter(req, USER_KEY_PARAM, false /* can't be empty */);
-        String message = getRequiredParameter(req, MESSAGE_PARAM, true /* CAN be empty */);
+        String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
+        String userKey = getRequiredParameter(req, USER_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
+        String message = getRequiredParameter(req, MESSAGE_PARAM, true, TopicManager.MAX_MESSAGE_LENGTH);
 
         log(String.format("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey));
 
