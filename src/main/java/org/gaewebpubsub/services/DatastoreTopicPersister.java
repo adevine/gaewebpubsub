@@ -22,9 +22,7 @@ import java.util.*;
 /**
  * The DatastoreTopicPersister uses the App Engine DatastoreService to persist data.
  *
- * TODO - check all exception handling, especially when dealing with transactions
  * TODO - check topicKey, userKey and userName length limits
- * TODO - check transaction usage is correct
  * TODO - check that right exceptions are thrown if necessary (like when topic doesn't exist)
  */
 public class DatastoreTopicPersister implements TopicPersister {

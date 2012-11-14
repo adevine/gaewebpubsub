@@ -15,7 +15,6 @@ if (typeof gaewps.topicManager["@TOPIC_KEY@"] == "undefined") {
         xhr.setRequestHeader("Content-length", params.length);
         xhr.setRequestHeader("Connection", "close");
         xhr.send(params);
-        //TODO - worry about response
     };
 
     /*
@@ -40,6 +39,7 @@ if (typeof gaewps.topicManager["@TOPIC_KEY@"] == "undefined") {
         }
     };
     //attach to beforeunload event
+    //TODO - check for beforeunload, if not present use unload - mobile safari doesn't support beforeunload.
     if (window.addEventListener) {
         window.addEventListener("beforeunload", gaewps.topicManager["@TOPIC_KEY@"].disconnect, false);
     } else if (window.attachEvent) {
