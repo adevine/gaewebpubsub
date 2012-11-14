@@ -59,13 +59,8 @@ public class ConnectServlet extends BaseServlet {
         }
         boolean selfNotify = Boolean.parseBoolean(req.getParameter(SELF_NOTIFY_PARAM)); //defaults to false
 
-        debugLog("Connecting with topicKey '%s', userKey '%s', userName '%s', topicLifetime %s, selfNotify %s",
-                 topicKey, userKey, userName, topicLifetime, selfNotify);
-
         String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName,
                                                                        topicLifetime, selfNotify);
-
-        debugLog("Succeeded getting user channel token %s", userChannelToken);
 
         resp.getWriter().println(filterConnectTemplate(javascriptTemplate,
                                                        getBaseUrl(req), topicKey, userKey, userChannelToken));

@@ -32,14 +32,10 @@ public class SendMessageServlet extends BaseServlet {
         String userKey = getRequiredParameter(req, USER_KEY_PARAM, false /* can't be empty */);
         String message = getRequiredParameter(req, MESSAGE_PARAM, true /* CAN be empty */);
 
-        debugLog("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey);
+        log(String.format("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey));
 
-        try {
-            getTopicManager().sendMessage(topicKey, userKey, message);
-            resp.setStatus(HttpServletResponse.SC_OK);
-        } catch (Exception e) {
-            exceptionLog(e, "Could not send message %s from user %s to topic %s", message);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Could not send message");
-        }
+        getTopicManager().sendMessage(topicKey, userKey, message);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
     }
 }
