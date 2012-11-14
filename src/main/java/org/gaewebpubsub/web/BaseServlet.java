@@ -15,7 +15,6 @@
  */
 package org.gaewebpubsub.web;
 
-import com.google.appengine.api.channel.ChannelServiceFactory;
 import org.gaewebpubsub.services.ChannelApiTopicManager;
 import org.gaewebpubsub.services.DatastoreTopicPersister;
 import org.gaewebpubsub.services.TopicManager;
@@ -47,7 +46,6 @@ public class BaseServlet extends HttpServlet {
             //note the creation of the topic manager could be made customizable with servlet config params -
             //for now, just always use a ChannelApiTopicManager
             ChannelApiTopicManager topicManager = new ChannelApiTopicManager();
-            topicManager.setChannelService(ChannelServiceFactory.getChannelService());
             topicManager.setTopicPersister(new DatastoreTopicPersister());
             getServletConfig().getServletContext().setAttribute("topicManager", topicManager);
         }

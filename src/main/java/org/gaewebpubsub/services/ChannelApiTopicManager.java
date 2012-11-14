@@ -17,6 +17,7 @@ package org.gaewebpubsub.services;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
+import com.google.appengine.api.channel.ChannelServiceFactory;
 import org.gaewebpubsub.util.Escapes;
 import org.gaewebpubsub.util.SecureHash;
 
@@ -25,11 +26,7 @@ import java.util.List;
 /**
  */
 public class ChannelApiTopicManager implements TopicManager {
-    protected ChannelService channelService;
-
     protected TopicPersister topicPersister;
-
-    public void setChannelService(ChannelService channelService) { this.channelService = channelService; }
 
     public void setTopicPersister(TopicPersister topicPersister) { this.topicPersister = topicPersister; }
 
@@ -45,9 +42,10 @@ public class ChannelApiTopicManager implements TopicManager {
         topicPersister.createTopic(topicKey, topicLifetime);
         List<TopicPersister.SubscriberData> currentSubscribers = topicPersister.loadTopicSubscribers(topicKey);
 
+        //TODO - the way this work means a user will NOT get a new token if they connect again. Is this wrong?
         TopicPersister.SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);
         if (thisUsersData == null) {
-            String channelToken = channelService.createChannel(getClientId(topicKey, userKey), topicLifetime);
+            String channelToken = getChannelService().createChannel(getClientId(topicKey, userKey), topicLifetime);
             topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken, selfNotify);
             thisUsersData = new TopicPersister.SubscriberData(userKey, userName, channelToken, selfNotify);
         }
@@ -90,6 +88,10 @@ public class ChannelApiTopicManager implements TopicManager {
         }
     }
 
+    protected ChannelService getChannelService() {
+        return ChannelServiceFactory.getChannelService();
+    }
+
     protected TopicPersister.SubscriberData getUserFromSubscriberList(
             String userKey, List<TopicPersister.SubscriberData> currentSubscribers) {
         for (TopicPersister.SubscriberData currentSubscriber : currentSubscribers) {
@@ -109,7 +111,7 @@ public class ChannelApiTopicManager implements TopicManager {
             if (selfNotify || !userKey.equals(subscriber.userKey)) {
                 String subscribersClientId = getClientId(topicKey, subscriber.userKey);
                 try {
-                    channelService.sendMessage(new ChannelMessage(subscribersClientId, jsonMessage));
+                    getChannelService().sendMessage(new ChannelMessage(subscribersClientId, jsonMessage));
                 } catch (Exception e) {
                     //TODO - handle
                 }
