@@ -2,7 +2,10 @@ package org.gaewebpubsub.services;
 
 /**
  * ConfigManager is used to save application config data. This allow config data to be changed dynamically at runtime
- * (e.g. through an admin page)
+ * (e.g. through an admin page).
+ *
+ * Note that config data is considered to be application-wide, so different instances should update the same underlying
+ * data store.
  */
 public interface ConfigManager {
 

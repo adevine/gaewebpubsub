@@ -15,9 +15,10 @@
    limitations under the License.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java"
-         import="org.gaewebpubsub.util.Escapes,org.gaewebpubsub.web.ValidationFilter" %>
-<jsp:useBean id="configManager" scope="request" class="org.gaewebpubsub.services.CachingConfigManager"/>
+         import="org.gaewebpubsub.util.Escapes,org.gaewebpubsub.web.ValidationFilter,org.gaewebpubsub.services.Defaults,org.gaewebpubsub.services.ConfigManager" %>
 <%
+  ConfigManager configManager = Defaults.newConfigManager();
+
   boolean saved = false;
   if (request.getMethod().equalsIgnoreCase("post")) {
     //then save

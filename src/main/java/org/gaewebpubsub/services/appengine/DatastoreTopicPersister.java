@@ -13,9 +13,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
  */
-package org.gaewebpubsub.services;
+package org.gaewebpubsub.services.appengine;
 
 import com.google.appengine.api.datastore.*;
+import org.gaewebpubsub.services.TopicAccessException;
+import org.gaewebpubsub.services.TopicPersister;
 
 import java.util.*;
 

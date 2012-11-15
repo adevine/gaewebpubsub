@@ -15,7 +15,7 @@
  */
 package org.gaewebpubsub.web;
 
-import org.gaewebpubsub.services.CachingConfigManager;
+import org.gaewebpubsub.services.Defaults;
 import org.gaewebpubsub.services.ConfigManager;
 import org.gaewebpubsub.util.ValidationUtils;
 
@@ -53,7 +53,7 @@ public class ValidationFilter implements Filter {
     protected ConfigManager configManager;
 
     public void init(FilterConfig filterConfig) throws ServletException {
-        configManager = new CachingConfigManager();
+        configManager = Defaults.newConfigManager();
     }
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)

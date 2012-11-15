@@ -1,8 +1,9 @@
-package org.gaewebpubsub.services;
+package org.gaewebpubsub.services.appengine;
 
 import com.google.appengine.api.datastore.*;
 import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import org.gaewebpubsub.services.ConfigManager;
 
 /**
  * This implementation of the ConfigManager stores its data in the Datastore and uses the MemcacheService for fast

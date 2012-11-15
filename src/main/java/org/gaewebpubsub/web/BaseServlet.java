@@ -15,8 +15,7 @@
  */
 package org.gaewebpubsub.web;
 
-import org.gaewebpubsub.services.ChannelApiTopicManager;
-import org.gaewebpubsub.services.DatastoreTopicPersister;
+import org.gaewebpubsub.services.Defaults;
 import org.gaewebpubsub.services.TopicManager;
 
 import javax.servlet.ServletConfig;
@@ -43,11 +42,7 @@ public class BaseServlet extends HttpServlet {
         //only first servlet loads the topic manager
         if (config.getServletContext().getAttribute("topicManager") == null) {
             log("Loading topic manager");
-            //note the creation of the topic manager could be made customizable with servlet config params -
-            //for now, just always use a ChannelApiTopicManager
-            ChannelApiTopicManager topicManager = new ChannelApiTopicManager();
-            topicManager.setTopicPersister(new DatastoreTopicPersister());
-            getServletConfig().getServletContext().setAttribute("topicManager", topicManager);
+            getServletConfig().getServletContext().setAttribute("topicManager", Defaults.newTopicManager());
         }
     }
 
@@ -77,7 +72,7 @@ public class BaseServlet extends HttpServlet {
      * Helper method gets the base URL of a request.
      *
      * @param request The incoming request.
-     * @return The base URL of the request (i.e., the request without the final file)
+     * @return The base URL of the request (i.e., the request without the servlet path)
      */
     public static String getBaseUrl(HttpServletRequest request) {
         try {
@@ -85,6 +80,10 @@ public class BaseServlet extends HttpServlet {
                                   request.getServerName(),
                                   request.getServerPort(),
                                   request.getContextPath());
+            if (baseUrl.getDefaultPort() == baseUrl.getPort()) {
+                //then leave out the port for a friendlier url
+                baseUrl = new URL(request.getScheme(), request.getServerName(), request.getContextPath());
+            }
             return baseUrl.toExternalForm();
         } catch (Exception e) {
             throw new IllegalArgumentException(e);

@@ -13,11 +13,15 @@
    See the License for the specific language governing permissions and
    limitations under the License.
  */
-package org.gaewebpubsub.services;
+package org.gaewebpubsub.services.appengine;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
 import com.google.appengine.api.channel.ChannelServiceFactory;
+import org.gaewebpubsub.services.SubscriberNotificationException;
+import org.gaewebpubsub.services.TopicAccessException;
+import org.gaewebpubsub.services.TopicManager;
+import org.gaewebpubsub.services.TopicPersister;
 import org.gaewebpubsub.util.Escapes;
 import org.gaewebpubsub.util.SecureHash;
 
