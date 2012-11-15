@@ -46,6 +46,7 @@ public class ConnectServlet extends BaseServlet {
         resp.setContentType("text/javascript");
         resp.setCharacterEncoding("UTF-8");
 
+        //get params
         String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
         String userKey = getRequiredParameter(req, USER_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
         String userName = getRequiredParameter(req, USER_NAME_PARAM, false, TopicManager.MAX_KEY_LENGTH);
@@ -59,12 +60,18 @@ public class ConnectServlet extends BaseServlet {
             //OK, lifetime stays at the default
         }
         boolean selfNotify = Boolean.parseBoolean(req.getParameter(SELF_NOTIFY_PARAM)); //defaults to false
+        String validationToken = req.getParameter(ValidationFilter.VALIDATION_PARAM_NAME);
 
+        //add user to the topic and return filtered JS file
         String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName,
                                                                        topicLifetime, selfNotify);
 
         resp.getWriter().println(filterConnectTemplate(javascriptTemplate,
-                                                       getBaseUrl(req), topicKey, userKey, userChannelToken));
+                                                       getBaseUrl(req),
+                                                       validationToken,
+                                                       topicKey,
+                                                       userKey,
+                                                       userChannelToken));
     }
 
     protected String loadJavascriptTemplate() throws ServletException {
@@ -88,9 +95,20 @@ public class ConnectServlet extends BaseServlet {
     }
 
     protected String filterConnectTemplate(String template,
-                                           String baseUrl, String topicKey, String userKey, String userChannelToken) {
+                                           String baseUrl,
+                                           String validationToken,
+                                           String topicKey,
+                                           String userKey,
+                                           String userChannelToken) {
+        String validationParam = validationToken == null ?
+                                 "" :
+                                 "&" + ValidationFilter.VALIDATION_PARAM_NAME
+                                 + "=" + Escapes.escapeUrlParam(validationToken);
+
         template = template.replaceAll("@BASE_PATH@",
                                        Matcher.quoteReplacement(Escapes.escapeJavaScriptString(baseUrl)));
+        template = template.replaceAll("@VALIDATION_PARAM@",
+                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(validationParam)));
         template = template.replaceAll("@TOPIC_KEY@",
                                        Matcher.quoteReplacement(Escapes.escapeJavaScriptString(topicKey)));
         template = template.replaceAll("@USER_KEY@",

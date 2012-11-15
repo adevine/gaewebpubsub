@@ -30,11 +30,11 @@ public class DatastoreTopicPersister implements TopicPersister {
     private static final String SUBSCRIBER_KIND = "Subscriber";
 
     //Column names
-    public static final String MESSAGE_NUM_PROP = "messageNum";
-    public static final String EXPIRATION_TIME_PROP = "expirationTime";
-    public static final String USER_NAME_PROP = "userName";
-    public static final String CHANNEL_TOKEN_PROP = "channelToken";
-    public static final String SELF_NOTIFY_PROP = "selfNotify";
+    private static final String MESSAGE_NUM_PROP = "messageNum";
+    private static final String EXPIRATION_TIME_PROP = "expirationTime";
+    private static final String USER_NAME_PROP = "userName";
+    private static final String CHANNEL_TOKEN_PROP = "channelToken";
+    private static final String SELF_NOTIFY_PROP = "selfNotify";
 
     public boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;

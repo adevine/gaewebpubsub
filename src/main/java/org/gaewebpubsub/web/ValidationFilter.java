@@ -15,25 +15,70 @@
  */
 package org.gaewebpubsub.web;
 
+import org.gaewebpubsub.services.CachingConfigManager;
+import org.gaewebpubsub.services.ConfigManager;
+import org.gaewebpubsub.util.ValidationUtils;
+
 import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * ValidationFilter can be used to ensure only authorized requests are made to the service.
+ * By default, validation works as follows:
+ *
+ * <ol>
+ *     <li>If there is no config property in the datastore (kind=Config) with the key name "validationKey", then
+ *     no validation is performed and all requests are allowed.</li>
+ *     <li>If there IS a validationKey config property, then it is used to validate the request path. It is expected
+ *     that the last path element in the request will be of the format "timestamp|validationHash", where timestamp is
+ *     the current Java timestamp, and validationHash is equal to
+ *     com.gaewebpubsub.util.SecureHash.hash(timestamp + validationKeyFromConfig). This validation protocol makes it
+ *     so that only other servers can send valid requests if they know the secret validation key.</li>
+ * </ol>
+ *
+ * A different validation algorithm can be implemented by overriding the "validateRequest" method of this class, and
+ * then specifying that subclass as the filter in web.xml.
+ *
+ * @see org.gaewebpubsub.util.ValidationUtils
  */
 public class ValidationFilter implements Filter {
-    public void init(FilterConfig filterConfig) throws ServletException {
+    private static final Logger logger = Logger.getLogger(ValidationFilter.class.getName());
 
+    public static final String VALIDATION_KEY_CONFIG_PROP = "validationKey";
+    public static final String VALIDATION_PARAM_NAME = "validation";
+
+    protected ConfigManager configManager;
+
+    public void init(FilterConfig filterConfig) throws ServletException {
+        configManager = new CachingConfigManager();
     }
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
             throws IOException, ServletException {
-        //TODO - implement if necessary
-
-        filterChain.doFilter(request, response);
+        if (validateRequest((HttpServletRequest)request)) {
+            filterChain.doFilter(request, response);
+        } else {
+            ((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Request failed validation");
+        }
     }
 
-    public void destroy() {
+    public void destroy() { }
 
+    protected boolean validateRequest(HttpServletRequest request) {
+        String privateValidationKey = configManager.get(VALIDATION_KEY_CONFIG_PROP, "");
+        if (privateValidationKey.length() > 0) {
+            long now = System.currentTimeMillis();
+            return ValidationUtils.isTokenValid(privateValidationKey,
+                                                request.getParameter(VALIDATION_PARAM_NAME),
+                                                now - (24 * 60 * 60 * 1000),
+                                                now + (24 * 60 * 60 * 1000));
+        }
+
+        logger.info("Note validation for this server is not currently enabled. " +
+                    "See the project README for instructions on enabling validation");
+        return true;
     }
 }

@@ -6,4 +6,7 @@
     
     <sessions-enabled>false</sessions-enabled>
     <threadsafe>true</threadsafe>
+    <admin-console>
+        <page name="Web Pub Sub Configuration Options" url="/admin/admin.jsp" />
+    </admin-console>
 </appengine-web-app>

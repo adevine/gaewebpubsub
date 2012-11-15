@@ -26,14 +26,16 @@ if (typeof gaewps.topicManager["@TOPIC_KEY@"] == "undefined") {
         gaewps.sendPost("@BASE_PATH@/send",
                         "topicKey=" + encodeURIComponent("@TOPIC_KEY@") +
                         "&userKey=" + encodeURIComponent("@USER_KEY@") +
-                        "&message=" + encodeURIComponent(messageText));
+                        "&message=" + encodeURIComponent(messageText) +
+                        "@VALIDATION_PARAM@");
     };
 
     //disconnect can be called to disconnect the user from the topic. By default it is run on window unloading.
     gaewps.topicManager["@TOPIC_KEY@"].disconnect = function() {
         gaewps.sendPost("@BASE_PATH@/disconnect",
                         "topicKey=" + encodeURIComponent("@TOPIC_KEY@") +
-                        "&userKey=" + encodeURIComponent("@USER_KEY@"));
+                        "&userKey=" + encodeURIComponent("@USER_KEY@") +
+                        "@VALIDATION_PARAM@");
         if (typeof gaewps.topicManager["@TOPIC_KEY@"].gaeChannelSocket != "undefined") {
             gaewps.topicManager["@TOPIC_KEY@"].gaeChannelSocket.close();
         }
