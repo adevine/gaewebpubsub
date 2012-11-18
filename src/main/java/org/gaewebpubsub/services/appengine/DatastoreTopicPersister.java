@@ -16,6 +16,7 @@
 package org.gaewebpubsub.services.appengine;
 
 import com.google.appengine.api.datastore.*;
+import org.gaewebpubsub.services.Defaults;
 import org.gaewebpubsub.services.TopicAccessException;
 import org.gaewebpubsub.services.TopicPersister;
 
@@ -30,71 +31,78 @@ public class DatastoreTopicPersister implements TopicPersister {
     //Entity Kinds
     private static final String TOPIC_KIND = "Topic";
     private static final String SUBSCRIBER_KIND = "Subscriber";
+    private static final String MESSAGE_KIND = "Message";
 
     //Column names
     private static final String MESSAGE_NUM_PROP = "messageNum";
     private static final String EXPIRATION_TIME_PROP = "expirationTime";
+
     private static final String USER_NAME_PROP = "userName";
     private static final String CHANNEL_TOKEN_PROP = "channelToken";
     private static final String SELF_NOTIFY_PROP = "selfNotify";
 
-    public boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException {
+    private static final String TOPIC_KEY_PROP = "topicKey";
+    private static final String USER_KEY_PROP = "userKey";
+    private static final String MESSAGE_TEXT_PROP = "messageText";
+
+    protected boolean shouldSaveMessages = false;
+
+    public boolean createTopic(final String topicKey, final int topicLifetime) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
 
-        //create the topic if it doesn't already exist
-        DatastoreService datastore = getDatastore();
-        Transaction txn = datastore.beginTransaction();
+        checkSaveMessagesFlag();
+
         try {
-            datastore.get(topicEntityKey(topicKey));
-            return false; //topic already existed, we didn't create a new one
-        } catch (EntityNotFoundException enfe) {
-            //then need to create topic
-            try {
-                Entity topicEntity = new Entity(TOPIC_KIND, topicKey);
-                topicEntity.setProperty(MESSAGE_NUM_PROP, 0);
-                topicEntity.setProperty(EXPIRATION_TIME_PROP, System.currentTimeMillis() + (topicLifetime * 60000L));
-                datastore.put(topicEntity);
-                txn.commit();
-                return true;
-            } catch (Exception e) {
-                throw new TopicAccessException("Error saving topic " + topicKey, e);
-            }
-        } finally {
-            cleanup(txn);
+            return new TransactionRunner<Boolean>(getDatastore()) {
+                protected Boolean txnBlock() {
+                    //create the topic if it doesn't already exist
+                    try {
+                        datastore.get(topicEntityKey(topicKey));
+                        return false; //topic already existed, we didn't create a new one
+                    } catch (EntityNotFoundException enfe) {
+                        //then need to create topic
+                        Entity topicEntity = new Entity(TOPIC_KIND, topicKey);
+                        topicEntity.setProperty(MESSAGE_NUM_PROP, 0);
+                        topicEntity.setProperty(EXPIRATION_TIME_PROP, System.currentTimeMillis() + (topicLifetime * 60000L));
+                        datastore.put(topicEntity);
+                        return true;
+                    }
+                }
+            }.run();
+        } catch (Exception e) {
+            throw new TopicAccessException("Error saving topic " + topicKey, e);
         }
     }
 
-    public boolean addUserToTopic(String topicKey,
-                                  String userKey,
-                                  String userName,
-                                  String channelToken,
-                                  boolean selfNotify) throws TopicAccessException {
+    public boolean addUserToTopic(final String topicKey,
+                                  final String userKey,
+                                  final String userName,
+                                  final String channelToken,
+                                  final boolean selfNotify) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
         assert channelToken != null && channelToken.trim().length() > 0;
 
-        DatastoreService datastore = getDatastore();
-
-        Transaction txn = datastore.beginTransaction();
         try {
-            datastore.get(subscriberEntityKey(topicKey, userKey));
-            return false; //subscriber already existed
-        } catch (EntityNotFoundException enfe) {
-            //then need to create subscriber
-            try {
-                Entity subscriberEntity = new Entity(SUBSCRIBER_KIND, userKey, topicEntityKey(topicKey));
-                subscriberEntity.setProperty(USER_NAME_PROP, userName);
-                subscriberEntity.setProperty(CHANNEL_TOKEN_PROP, channelToken);
-                subscriberEntity.setProperty(SELF_NOTIFY_PROP, selfNotify);
-                datastore.put(subscriberEntity);
-                txn.commit();
-                return true;
-            } catch (Exception e) {
-                throw new TopicAccessException("Error adding user " + userKey + " to topic " + topicKey, e);
-            }
-        } finally {
-            cleanup(txn);
+            return new TransactionRunner<Boolean>(getDatastore()) {
+                protected Boolean txnBlock() {
+                    try {
+                        datastore.get(subscriberEntityKey(topicKey, userKey));
+                        return false; //subscriber already existed
+                    } catch (EntityNotFoundException enfe) {
+                        //then need to create subscriber
+                        Entity subscriberEntity = new Entity(SUBSCRIBER_KIND, userKey, topicEntityKey(topicKey));
+                        subscriberEntity.setProperty(USER_NAME_PROP, userName);
+                        subscriberEntity.setProperty(CHANNEL_TOKEN_PROP, channelToken);
+                        subscriberEntity.setProperty(SELF_NOTIFY_PROP, selfNotify);
+                        datastore.put(subscriberEntity);
+                        return true;
+                    }
+                }
+            }.run();
+        } catch (Exception e) {
+            throw new TopicAccessException("Error adding user " + userKey + " to topic " + topicKey, e);
         }
     }
 
@@ -119,52 +127,66 @@ public class DatastoreTopicPersister implements TopicPersister {
         }
     }
 
-    public int persistMessage(String topicKey, String userKey, String userName, String message)
+    public int persistMessage(final String topicKey, final String userKey, final String userName, final String message)
             throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
         assert message != null;
 
-        //TODO - for now, not persisting message, just updating the message num - make saving full message optional
-
         //TODO - this is definitely a bottleneck - maybe make monotonically increasing message nums optional
-        DatastoreService datastore = getDatastore();
-        Transaction txn = datastore.beginTransaction();
         try {
-            Entity topicEntity = datastore.get(topicEntityKey(topicKey));
-            int currentMessageNum = ((Number) topicEntity.getProperty(MESSAGE_NUM_PROP)).intValue();
-            //update the message num and save
-            topicEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum + 1);
-            datastore.put(topicEntity);
-            txn.commit();
-            return currentMessageNum + 1;
-        } catch (EntityNotFoundException enfe) {
-            throw new TopicAccessException("Topic " + topicKey + " not found");
+            return new TransactionRunner<Integer>(getDatastore()) {
+                protected Integer txnBlock(Transaction txn) {
+                    try {
+                        Key topicEntityKey = topicEntityKey(topicKey);
+                        Entity topicEntity = datastore.get(topicEntityKey);
+                        int currentMessageNum = ((Number) topicEntity.getProperty(MESSAGE_NUM_PROP)).intValue();
+                        //update the message num and save
+                        currentMessageNum++;
+                        topicEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum);
+                        datastore.put(topicEntity);
+                        txn.commit();
+
+                        if (shouldSaveMessages) {
+                            Entity messageEntity = new Entity(MESSAGE_KIND);
+                            messageEntity.setProperty(TOPIC_KEY_PROP, topicEntityKey);
+                            messageEntity.setProperty(USER_KEY_PROP, userKey);
+                            messageEntity.setProperty(USER_NAME_PROP, userName);
+                            messageEntity.setProperty(MESSAGE_TEXT_PROP, new Text(message));
+                            messageEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum);
+                            datastore.put(messageEntity);
+                        }
+
+                        return currentMessageNum;
+                    } catch (EntityNotFoundException enfe) {
+                        throw new TopicAccessException("Topic " + topicKey + " not found");
+                    }
+                }
+            }.run();
         } catch (Exception e) {
             throw new TopicAccessException("Error persisting message to topic " + topicKey, e);
-        } finally {
-            cleanup(txn);
         }
     }
 
-    public boolean unsubscribeUserFromTopic(String topicKey, String userKey) throws TopicAccessException {
+    public boolean unsubscribeUserFromTopic(final String topicKey, final String userKey) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
 
-        DatastoreService datastore = getDatastore();
-        Transaction txn = datastore.beginTransaction();
         try {
-            Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
-            datastore.delete(subscriberEntity.getKey());
-            txn.commit();
-            return true;
-        } catch (EntityNotFoundException enfe) {
-            return false;
+            return new TransactionRunner<Boolean>(getDatastore()) {
+                protected Boolean txnBlock() {
+                    try {
+                        Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
+                        datastore.delete(subscriberEntity.getKey());
+                        return true;
+                    } catch (EntityNotFoundException enfe) {
+                        return false;
+                    }
+                }
+            }.run();
         } catch (Exception e) {
             throw new TopicAccessException("Error unsubscribing user " + userKey + " from topic " + topicKey, e);
-        } finally {
-            cleanup(txn);
         }
     }
 
@@ -180,13 +202,10 @@ public class DatastoreTopicPersister implements TopicPersister {
         return KeyFactory.createKey(topicEntityKey(topicKey), SUBSCRIBER_KIND, userKey);
     }
 
-    protected void cleanup(Transaction txn) {
-        if (txn.isActive()) {
-            try {
-                txn.rollback();
-            } catch (Exception e) {
-                //nothing we can do at this point
-            }
-        }
+    /**
+     * We only check the save messages config flag when a new topic is created.
+     */
+    protected void checkSaveMessagesFlag() {
+        this.shouldSaveMessages = Boolean.parseBoolean(Defaults.newConfigManager().get("saveMessages", "false"));
     }
 }

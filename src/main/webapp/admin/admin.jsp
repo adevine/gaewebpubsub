@@ -23,6 +23,7 @@
   if (request.getMethod().equalsIgnoreCase("post")) {
     //then save
     configManager.set(ValidationFilter.VALIDATION_KEY_CONFIG_PROP, request.getParameter("validationKey"));
+    configManager.set("saveMessages", request.getParameter("saveMessages"));
     saved = true;
   }
 %>
@@ -64,6 +65,19 @@
         You may also use a custom validation algorithm by using a different ValidationFilter implementation.
         <br/><br/>
         If you wish to disable validation, save the validation key as a blank value.
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top"><label for="saveMessages">Save Messages?</label></td>
+      <td style="vertical-align: top; text-align: center">
+        <select id="saveMessages" name="saveMessages">
+          <option value="false">no</option>
+          <option value="true" <%= Boolean.parseBoolean(configManager.get("saveMessages", "false")) ? "selected" : "" %>>yes</option>
+        </select>
+      </td>
+      <td style="width:40%; vertical-align: top">
+        By default, messages will not be persisted to the datastore. If you set this value to yes, then all messages
+        sent to new topics will be persisted.
       </td>
     </tr>
     </tbody>
