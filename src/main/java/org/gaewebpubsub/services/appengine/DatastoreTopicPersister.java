@@ -178,6 +178,7 @@ public class DatastoreTopicPersister implements TopicPersister {
                 protected Boolean txnBlock() {
                     try {
                         Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
+                        //TODO - maybe mark as deleted instead of actual delete?
                         datastore.delete(subscriberEntity.getKey());
                         return true;
                     } catch (EntityNotFoundException enfe) {

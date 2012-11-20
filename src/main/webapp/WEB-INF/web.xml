@@ -39,6 +39,17 @@
         <url-pattern>/disconnect/*</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>subscribersServlet</servlet-name>
+        <servlet-class>org.gaewebpubsub.web.SubscribersServlet</servlet-class>
+        <load-on-startup>4</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>subscribersServlet</servlet-name>
+        <url-pattern>/subscribers/*</url-pattern>
+    </servlet-mapping>
+
     <filter>
         <filter-name>validationFilter</filter-name>
         <filter-class>org.gaewebpubsub.web.ValidationFilter</filter-class>

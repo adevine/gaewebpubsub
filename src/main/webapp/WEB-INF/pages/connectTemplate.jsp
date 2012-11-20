@@ -38,6 +38,15 @@ if (typeof gaewps.topicManager["${topicKey}"] == "undefined") {
         xhr.send(params);
     };
 
+    //helper method
+    gaewps.parseJson = function(jsonString) {
+        if (typeof JSON == "undefined") {
+            return eval("(" + jsonString + ")");
+        } else {
+            return JSON.parse(jsonString);
+        }
+    };
+
     /*
      * All of the public topicManager methods and callbacks are defined here
      */
@@ -69,6 +78,19 @@ if (typeof gaewps.topicManager["${topicKey}"] == "undefined") {
         window.attachEvent("onbeforeunload", gaewps.topicManager["${topicKey}"].disconnect);
     }
 
+    //getSubscribers can be called to get the current list of subscribers to a topic
+    //callback is a callback function that takes one parameter, which is the array of user names of the current subs.
+    gaewps.topicManager["${topicKey}"].getSubscribers = function(callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "${basePath}/subscribers?topicKey=" + encodeURIComponent("${topicKey}"), true/*async*/);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState != 4)  { return; }
+            //call the callback with the subscribers array
+            callback(gaewps.parseJson(xhr.responseText));
+        };
+        xhr.send(null);
+    };
+
     //event handlers can be set up by the client to respond to different events. We default to no-op methods
     gaewps.topicManager["${topicKey}"].onmessage = function(messageText, messageNumber, senderName) { };
     gaewps.topicManager["${topicKey}"].onconnected = function(userName) { };
@@ -76,18 +98,10 @@ if (typeof gaewps.topicManager["${topicKey}"] == "undefined") {
 }
 
 gaewps.topicManager["${topicKey}"].init = function() {
-    var parseJson = function(jsonString) {
-        if (typeof JSON == "undefined") {
-            return eval("(" + jsonString + ")");
-        } else {
-            return JSON.parse(jsonString);
-        }
-    };
-
     var channelSocket = new goog.appengine.Channel("${channelToken}").open();
     channelSocket.onmessage = function(messageObject) {
         //expect messageObject.data to be json from server
-        var envelope = parseJson(messageObject.data);
+        var envelope = gaewps.parseJson(messageObject.data);
         if ("message" == envelope.eventType) {
             gaewps.topicManager["${topicKey}"].onmessage(envelope.message, envelope.messageNumber, envelope.sender);
         } else if ("connect" == envelope.eventType) {

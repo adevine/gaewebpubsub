@@ -79,6 +79,26 @@
       var chatDiv = document.getElementById("chatDiv");
       chatDiv.innerHTML = chatDiv.innerHTML + "<b>" + escapeHtml(userName) + " just disconnected!"  + "</b><br/>";
   };
+
+  //show the connected subscribers now
+  gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].getSubscribers(function(subscribers) {
+      var chatDiv = document.getElementById("chatDiv");
+      var message = "Users who are in this chat right now: ";
+      for (var i = 0; i < subscribers.length; i++) {
+          if (i > 0) {
+              message += ", ";
+          }
+
+          var safeSubscriberName = escapeHtml(subscribers[i]);
+          var textColor = "blue";
+          if (subscribers[i] == "<%=Escapes.escapeJavaScriptString(userName)%>") {
+              safeSubscriberName = "You";
+              textColor = "green;"
+          }
+          message += "<span style='font-weight: bold; color: " + textColor + "'>" + safeSubscriberName + "</span>";
+      }
+      chatDiv.innerHTML = chatDiv.innerHTML + message + "<br/>";
+  });
 </script>
 </body>
 </html>

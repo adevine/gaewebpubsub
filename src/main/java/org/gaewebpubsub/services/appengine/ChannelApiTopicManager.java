@@ -25,6 +25,7 @@ import org.gaewebpubsub.services.TopicPersister;
 import org.gaewebpubsub.util.Escapes;
 import org.gaewebpubsub.util.SecureHash;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -77,6 +78,15 @@ public class ChannelApiTopicManager implements TopicManager {
                                      "messageNumber", Integer.toString(messageNum),
                                      "message", message));
         }
+    }
+
+    public List<String> getCurrentSubscribers(String topicKey) throws TopicAccessException {
+        List<TopicPersister.SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
+        List<String> retVal = new ArrayList<String>(subscribers.size());
+        for (TopicPersister.SubscriberData subscriberData : subscribers) {
+            retVal.add(subscriberData.userName);
+        }
+        return retVal;
     }
 
     public void disconnectUser(String topicKey, String userKey) throws SubscriberNotificationException {

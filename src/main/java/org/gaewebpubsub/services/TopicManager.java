@@ -15,6 +15,8 @@
  */
 package org.gaewebpubsub.services;
 
+import java.util.List;
+
 /**
  * The topic manager handles creation and message passing of the topic.
  */
@@ -75,6 +77,15 @@ public interface TopicManager {
      */
     void sendMessage(String topicKey, String userKey, String message)
             throws TopicAccessException, SubscriberNotificationException;
+
+    /**
+     * Gets the subscribers that are currently connected to the specified topic.
+     *
+     * @param topicKey The topic in question
+     * @return The list of the user NAMES of the subscribers currently connected to the topic.
+     * @throws TopicAccessException Thrown if the topic couldn't be accessed
+     */
+    List<String> getCurrentSubscribers(String topicKey) throws TopicAccessException;
 
     /**
      * Disconnects a user from a topic. After disconnection the user may no longer send messages to the topic.
