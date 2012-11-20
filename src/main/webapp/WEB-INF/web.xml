@@ -67,6 +67,10 @@
         <filter-name>validationFilter</filter-name>
         <servlet-name>disconnectServlet</servlet-name>
     </filter-mapping>
+    <filter-mapping>
+        <filter-name>validationFilter</filter-name>
+        <servlet-name>subscribersServlet</servlet-name>
+    </filter-mapping>
 
     <security-constraint>
         <web-resource-collection>
