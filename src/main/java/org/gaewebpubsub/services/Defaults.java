@@ -21,7 +21,7 @@ import org.gaewebpubsub.services.appengine.DatastoreTopicPersister;
 
 /**
  * Returns the default service implementations that will be used by the app. If you wish to swap out any implementations
- * you should only need to change this class, and potentially the connectTemplate.js file if you change the topic
+ * you should only need to change this class, and potentially the connectTemplate.jsp file if you change the topic
  * manager implementation.
  */
 public class Defaults {

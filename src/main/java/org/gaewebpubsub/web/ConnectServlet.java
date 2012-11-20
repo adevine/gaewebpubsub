@@ -32,14 +32,9 @@ import java.util.regex.Matcher;
  * makes the connection and then returns javascript that the client can use to send and subscribe to messages.
  */
 public class ConnectServlet extends BaseServlet {
-    /**
-     * This string holds the template that will be filtered in order to send the response
-     */
-    protected String javascriptTemplate;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        javascriptTemplate = loadJavascriptTemplate();
     }
 
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -66,32 +61,18 @@ public class ConnectServlet extends BaseServlet {
         String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName,
                                                                        topicLifetime, selfNotify);
 
-        resp.getWriter().println(filterConnectTemplate(javascriptTemplate,
-                                                       getBaseUrl(req),
-                                                       validationToken,
-                                                       topicKey,
-                                                       userKey,
-                                                       userChannelToken));
-    }
+        //JSP file needs access to the following pieces of data
+        String validationParam = validationToken == null ?
+                                 "" :
+                                 "&" + ValidationFilter.VALIDATION_PARAM_NAME
+                                 + "=" + Escapes.escapeUrlParam(validationToken);
+        req.setAttribute("basePath", Escapes.escapeJavaScriptString(getBaseUrl(req)));
+        req.setAttribute("validationParam", Escapes.escapeJavaScriptString(validationParam));
+        req.setAttribute("topicKey", Escapes.escapeJavaScriptString(topicKey));
+        req.setAttribute("userKey", Escapes.escapeJavaScriptString(userKey));
+        req.setAttribute("channelToken", Escapes.escapeJavaScriptString(userChannelToken));
 
-    protected String loadJavascriptTemplate() throws ServletException {
-        Scanner scanner = null;
-        try {
-            File file = new File("WEB-INF/connectTemplate.js");
-            StringBuilder retVal = new StringBuilder((int) file.length());
-            scanner = new Scanner(file, "UTF-8");
-            String lineSeparator = System.getProperty("line.separator");
-            while (scanner.hasNextLine()) {
-                retVal.append(scanner.nextLine()).append(lineSeparator);
-            }
-            return retVal.toString();
-        } catch (IOException ioe) {
-            throw new ServletException("Could not load connectTemplate.js file", ioe);
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
-        }
+        getServletContext().getRequestDispatcher("/WEB-INF/pages/connectTemplate.jsp").forward(req, resp);
     }
 
     protected String filterConnectTemplate(String template,
