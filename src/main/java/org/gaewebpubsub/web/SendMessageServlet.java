@@ -27,6 +27,8 @@ import java.io.IOException;
  */
 public class SendMessageServlet extends BaseServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        allowCrossOriginRequests(resp);
+
         resp.setContentType("text/javascript");
         resp.setCharacterEncoding("UTF-8");
 

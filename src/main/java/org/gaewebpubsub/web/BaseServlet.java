@@ -22,6 +22,8 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.URL;
 
 /**
@@ -66,6 +68,25 @@ public class BaseServlet extends HttpServlet {
             throw new IllegalArgumentException(paramName + " must have fewer than " + maxLength + " characters");
         }
         return retVal;
+    }
+
+    /**
+     * By overriding this method we allow incoming requests from AJAX calls being served from a different domain.
+     * However, subclasses will still need to call the allowCrossOriginRequests method from their respective handlers
+     * to allow incoming cross domain requests.
+     */
+    protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        allowCrossOriginRequests(resp);
+    }
+
+    /**
+     * This method sets the Access-Control-Allow-Origin, Access-Control-Allow-Methods and Access-Control-Max-Age
+     * methods to allow cross domain AJAX requests for GET, POST and OPTION requests.
+     */
+    protected void allowCrossOriginRequests(HttpServletResponse response) throws ServletException, IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Max-Age", "1728000");
     }
 
     /**

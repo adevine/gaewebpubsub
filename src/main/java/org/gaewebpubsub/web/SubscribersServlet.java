@@ -29,6 +29,8 @@ import java.util.List;
  */
 public class SubscribersServlet extends BaseServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        allowCrossOriginRequests(resp);
+
         resp.setContentType("text/javascript");
         resp.setCharacterEncoding("UTF-8");
 
