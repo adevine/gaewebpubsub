@@ -142,8 +142,82 @@ The gaewps topic object (accessed using gaewps.topics[YOUR_TOPIC_KEY]):
 
 ## Configuration Options ##
 
-TODO
+If you are running GAEWebPubSub in your own App Engine instance, you can
+access admin configuration options through the standard App Engine admin page.
+There is a "Web Pub Sub Configuration Options" link added under the "Custom"
+header in the left nav bar. You can also access the config page at
+http://YOUR_APP_ID.appspot.com/admin/admin.jsp.
+
+There are two configuration options that you can set:
+
++   **Validation Key** - If this option is set to a non-blank value then you
+    must pass the "validation" parameter in with the call to load the
+    GAEWebPubSub javascript file. This key is used to verify the validation
+    parameter to ensure that only authorized clients can create and connect to
+    topics. See the "Security and Validation" section below for an explanation
+    of how this works and how to use it.
++   **Save Messages** - If set to true then all messages sent to any topic
+    will be persisted to the App Engine Datastore using a "Message" entity
+    type.
 
 ## Security and Validation ##
 
-TODO
+There are a number of security considerations to consider when deploying
+GAEWebPubSub:
+
+1.  **Ensuring unauthorized clients do not create new topics:** By default,
+    GAEWebPubSub does not perform validation on incoming requests to ensure
+    that only verified clients can create new topics. A design goal of
+    GAEWebPubSub was that other applications should not have to be tightly
+    integrated with it to use it, and thus GAEWebPubSub does not need any
+    access to other apps' authentication systems. Instead, you can use the
+    Validation Key config option and the validation request parameter passed
+    in on the GAEWebPubSub javascript file to enable validation. Here's how
+    it works:
+
+    1.  Set the "Validation Key" configuration option to a random, unguessable
+        value (such as a random UUID).
+    2.  Any apps that load the GAEWebPubSub javascript file to connect to a
+        topic must add a "validation" parameter, e.g
+
+            &validation=1354685386958|76A9540817FA8A01C377557AEC9DF89E0E0CF9D26A0A656329DC96C16FDC9224
+
+        The format of the validation parameter value is as follows:
+
+        1.  Current timestamp (i.e. System.currentTimeMillis());
+        2.  Pipe character
+        3.  A SHA256 hash of timestamp + ValidationKey.
+
+        Thus, only web applications that know your ValidationKey will be able
+        to generate a correct validation parameter. You can use the code in the
+        org.gaewebpubsub.util.ValidationUtils class to generate the parameter
+        value.
+    3.  All incoming requests are then checked using the
+        org.gaewebpubsub.web.ValidationFilter servlet filter. If the
+        validation parameter value does not match with the configured
+        Validation Key option, then the request is rejected.
+
+    Note you may wish to modify the ValidationFilter class to use a different
+    validation algorithm. For example, you could set up a scheme where each
+    application that accesses your instance uses a different private validation
+    key.
+
+2.  **Ensuring unauthorized users do not connect to topics they shouldn't be able to access:**
+    It is important to ensure that the topicKeys you use are random and
+    difficult to guess, like a secure hash value. Any other user who knows the
+    topic key would be able to connect to the topic. Thus, you should be sure
+    not to use something like an increasing integer as a topic key.
+3.  **Ensuring users can not impersonate other users:** It is also important
+    that your userKeys are large random values. userKeys are never passed to
+    other subscribers of the topic - only user names are. Note, though, that
+    user names are not validated, thus it would potentially be possible for
+    a client to modify their user name to make it LOOK like they were a
+    different user, at least to other subscribers. To prevent this, you could
+    use a custom validation scheme similar to the Validation Key: you could
+    require the userKey to be a secure hash of the userName and a private key.
+    You would then need to modify the ValidationFilter to check for this
+    requirement.
+4.  **Ensuring unauthorized users can not snoop on messages sent to topics:**
+    You will need to use SSL on your GAEWebPubSub instance if you want to
+    encrypt your conversations. See <https://developers.google.com/appengine/docs/ssl>
+    for information on enabling SSL in App Engine.
