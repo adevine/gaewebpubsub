@@ -43,7 +43,7 @@ window.gaewps.topics["${topicKey}"] = window.gaewps.topics["${topicKey}"] || {};
         }
     };
 
-    gaewps.maxNumReturnReceiptCallbacks = 5;
+    gaewps.maxNumReturnReceiptCallbacks = 100;
 })(window.gaewps);
 
 (function(topic) {
