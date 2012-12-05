@@ -23,12 +23,13 @@ sendMessage() calls and responding to onmessage callbacks).
         <script src="http://gaewebpubsub.appspot.com/connect?topicKey=TOPIC_KEY_HERE&userName=USER_NAME_HERE&userKey=USER_KEY_HERE"></script>
 
     You should replace the parameters to the script with the following values:
-    1.  TOPIC_KEY_HERE: This should be a unique key that defines the topic.
-        For security reasons this key should be unguessable (e.g. a secure
-        hash value).
-    2.  USER_NAME_HERE: The name of the user subscribing to the topic. This
-        name should be unique among all subscribers in the same topic.
-    3.  USER_KEY_HERE: A globally unique key that identifies the subscriber.
+    1.  **TOPIC_KEY_HERE**: This should be a unique key that defines the
+        topic. For security reasons this key should be unguessable (e.g. a
+        secure hash value).
+    2.  **USER_NAME_HERE**: The name of the user subscribing to the topic.
+        This name should be unique among all subscribers in the same topic.
+    3.  **USER_KEY_HERE**: A globally unique key that identifies the
+        subscriber.
 
 2.  To send messages to the topic you use the sendMessage() method:
 
@@ -78,19 +79,19 @@ the project in Google App Engine. To do that you will need to:
 
 Request Parameters to the GAEWebPubSub javascript file:
 
-1.  *topicKey* - Required. This is the unique key that identifies a particular
+1.  **topicKey** - Required. This is the unique key that identifies a particular
     topic. In order to prevent unauthorized users from entering the topic,
     this should be an unguessable value, like a random UUID or secure hash.
-2.  *userName* - Required. The name of the user subscribing to the topic. Must
+2.  **userName** - Required. The name of the user subscribing to the topic. Must
     be unique among all subscribers to a particular topic.
-3.  *userKey* - Required. A globally unique identifier for the user. This
+3.  **userKey** - Required. A globally unique identifier for the user. This
     value should also be unguessable, or else an imposter could connect to the
     topic pretending to be a different user.
-4.  *topicLifetime* - Optional. Specifies the time, in minutes, that the topic
+4.  **topicLifetime** - Optional. Specifies the time, in minutes, that the topic
     should live for. If not specified, the default topic lifetime is 120
     minutes. The maximum lifespan is one day (this is the maximum lifespan of
     the underlying App Engine Channel objects).
-5.  *validation* - Optional or Required, depending on configuration options.
+5.  **validation** - Optional or Required, depending on configuration options.
     This parameter can be used to restrict access to your running instance of
     GAEWebPubSub. See the "Configuration Options" and "Security and Validation"
     sections below.
@@ -102,12 +103,12 @@ The gaewps topic object (accessed using gaewps.topics[YOUR_TOPIC_KEY]):
     message number of the sent message (message numbers are monotonically
     increasing, scoped to a single subscriber). Note the maximum messageText
     length is 32K, as specified by the Channel API.
-    1.  *messageText* - Required. The message to send to all other subscribers
+    1.  **messageText** - Required. The message to send to all other subscribers
         of the topic.
-    2.  *selfNotify* - Optional, defaults to false. If set to true, then the
+    2.  **selfNotify** - Optional, defaults to false. If set to true, then the
         user calling this method will ALSO be notified of the message in the
         onmessage handler.
-    3.  *returnReceiptCallback* - Optional. If specified, this must be a
+    3.  **returnReceiptCallback** - Optional. If specified, this must be a
         function object that takes 2 parameters, messageNumber and
         senderName. If specified, when other users receive your message, they
         will call back to the server to send a "return receipt". This
