@@ -1,8 +1,8 @@
 # GAE Web Pub/Sub #
 
-GAEWebPubSub is a publish/subscribe is a very thin layer built around the
-Channel API of Google App Engine. It provides a simple way to create
-topics that multiple clients can connect to for sharing messages (think
+GAEWebPubSub is a publish/subscribe service that is a very thin layer built
+around the Channel API of Google App Engine. It provides a simple way to
+create topics that multiple clients can connect to for sharing messages (think
 chat rooms or an instant messenger).
 
 The rationale for building GAEWebPubSub is that I wanted to take advantage
@@ -14,8 +14,8 @@ the rest of your application.
 ## Quick Start ##
 
 GAEWebPubSub is integrated into a web app by including a javascript file and
-then interacting with the topic object (e.g. making sendMessage() calls and
-responding to onmessage callbacks).
+then interacting with the Topic object created by the script (e.g. making
+sendMessage() calls and responding to onmessage callbacks).
 
 1.  First, you must include the javascript file that connects the user to the
     topic:
@@ -42,9 +42,7 @@ responding to onmessage callbacks).
     topic object:
 
         gaewps.topics[TOPIC_KEY_HERE].onmessage = function(messageText, messageNumber, senderName) {
-            alert("Just got message #" + messageNumber +
-                  " from " + senderName +
-                  ": " + messageText);
+            alert("Just got message #" + messageNumber + " from " + senderName + ": " + messageText);
         };
 
 4.  In addition, you can be notified when users join or leave the topic by
@@ -64,7 +62,7 @@ the project in Google App Engine. To do that you will need to:
     for information.
 2.  Fork this project into your own git repository.
 3.  The only file you should need to edit in the project is
-    "appengine-web.xml". You will need to change the "<application>" entry to
+    "appengine-web.xml". You will need to change the "application" entry to
     be the ID of the application you created in App Engine.
 4.  This project is built with Maven and the Maven App Engine plugins, so you
     will need Maven to build and deploy the project. To build the project
@@ -78,7 +76,7 @@ the project in Google App Engine. To do that you will need to:
 
 ## Javascript Reference ##
 
-Parameters to the GAEWebPubSub javascript file:
+Request Parameters to the GAEWebPubSub javascript file:
 
 1.  *topicKey* - Required. This is the unique key that identifies a particular
     topic. In order to prevent unauthorized users from entering the topic,
@@ -104,7 +102,6 @@ The gaewps topic object (accessed using gaewps.topics[YOUR_TOPIC_KEY]):
     message number of the sent message (message numbers are monotonically
     increasing, scoped to a single subscriber). Note the maximum messageText
     length is 32K, as specified by the Channel API.
-
     1.  *messageText* - Required. The message to send to all other subscribers
         of the topic.
     2.  *selfNotify* - Optional, defaults to false. If set to true, then the
