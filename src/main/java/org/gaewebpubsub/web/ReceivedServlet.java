@@ -23,9 +23,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * This message is called when a user wishes to send a message to all the other users connected to a topic.
+ * This servlet is called when one subscriber is sending a return receipt to another subscriber who previously sent
+ * a message.
  */
-public class SendMessageServlet extends BaseServlet {
+public class ReceivedServlet extends BaseServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         allowCrossOriginRequests(resp);
 
@@ -34,14 +35,13 @@ public class SendMessageServlet extends BaseServlet {
 
         String topicKey = getRequiredParameter(req, TOPIC_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
         String userKey = getRequiredParameter(req, USER_KEY_PARAM, false, TopicManager.MAX_KEY_LENGTH);
-        String message = getRequiredParameter(req, MESSAGE_PARAM, true, TopicManager.MAX_MESSAGE_LENGTH);
-        boolean selfNotify = Boolean.parseBoolean(getRequiredParameter(req, SELF_NOTIFY_PARAM, true, 10));
-        boolean needsReceipt = Boolean.parseBoolean(getRequiredParameter(req, NEEDS_RECEIPT_PARAM, true, 10));
+        String originalSender = getRequiredParameter(req, ORIGINAL_SENDER_PARAM, false, TopicManager.MAX_KEY_LENGTH);
         int messageNumber = Integer.parseInt(getRequiredParameter(req, MESSAGE_NUMBER_PARAM, false, 100));
 
-        log(String.format("Sending message '%s' on topic '%s' from user key '%s'", message, topicKey, userKey));
+        log(String.format("Sending return receipt from '%s' on topic '%s' to user '%s' for his message #%d",
+                          userKey, topicKey, originalSender, messageNumber));
 
-        getTopicManager().sendMessage(topicKey, userKey, message, messageNumber, selfNotify, needsReceipt);
+        getTopicManager().sendReturnReceipt(topicKey, userKey, originalSender, messageNumber);
 
         resp.setStatus(HttpServletResponse.SC_OK);
     }

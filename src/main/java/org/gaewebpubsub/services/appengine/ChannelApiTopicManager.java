@@ -18,15 +18,11 @@ package org.gaewebpubsub.services.appengine;
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
 import com.google.appengine.api.channel.ChannelServiceFactory;
-import org.gaewebpubsub.services.SubscriberNotificationException;
-import org.gaewebpubsub.services.TopicAccessException;
-import org.gaewebpubsub.services.TopicManager;
-import org.gaewebpubsub.services.TopicPersister;
+import org.gaewebpubsub.services.*;
 import org.gaewebpubsub.util.Escapes;
 import org.gaewebpubsub.util.SecureHash;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  */
@@ -35,55 +31,81 @@ public class ChannelApiTopicManager implements TopicManager {
 
     public void setTopicPersister(TopicPersister topicPersister) { this.topicPersister = topicPersister; }
 
-    public String connectUserToTopic(String topicKey,
-                                     String userKey,
-                                     String userName,
-                                     int topicLifetime,
-                                     boolean selfNotify) throws TopicAccessException, SubscriberNotificationException {
+    public SubscriberData connectUserToTopic(String topicKey,
+                                             String userKey,
+                                             String userName,
+                                             int topicLifetime,
+                                             boolean selfNotify)
+            throws TopicAccessException, SubscriberNotificationException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
 
         topicPersister.createTopic(topicKey, topicLifetime);
-        List<TopicPersister.SubscriberData> currentSubscribers = topicPersister.loadTopicSubscribers(topicKey);
+        List<SubscriberData> currentSubscribers = topicPersister.loadTopicSubscribers(topicKey);
 
-        //TODO - the way this work means a user will NOT get a new token if they connect again. Is this wrong?
-        TopicPersister.SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);
+        SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);
         if (thisUsersData == null) {
             String channelToken = getChannelService().createChannel(getClientId(topicKey, userKey), topicLifetime);
             topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken, selfNotify);
-            thisUsersData = new TopicPersister.SubscriberData(userKey, userName, channelToken, selfNotify);
+            thisUsersData = new SubscriberData(userKey, userName, channelToken, selfNotify, 0);
         }
 
         //notify OTHER users that this user was added
         notifySubscribers(topicKey, userKey, currentSubscribers, false /* never self notify on connect */,
                           toJson("eventType", "connect", "sender", userName));
 
-        return thisUsersData.channelToken;
+        return thisUsersData;
     }
 
-    public void sendMessage(String topicKey, String userKey, String message)
-            throws TopicAccessException, SubscriberNotificationException {
+    public void sendMessage(String topicKey,
+                            String userKey,
+                            String message,
+                            int messageNumber,
+                            boolean selfNotify,
+                            boolean needsReceipt) throws TopicAccessException, SubscriberNotificationException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert message != null;
 
-        List<TopicPersister.SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
-        TopicPersister.SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
+        List<SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
+        SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
         if (sendersData != null) {
-            int messageNum = topicPersister.persistMessage(topicKey, userKey, sendersData.userName, message);
-            notifySubscribers(topicKey, userKey, subscribers, sendersData.selfNotify,
+            topicPersister.persistMessage(topicKey, userKey, sendersData.userName, message, messageNumber);
+            notifySubscribers(topicKey, userKey, subscribers, selfNotify,
                               toJson("eventType", "message",
                                      "sender", sendersData.userName,
-                                     "messageNumber", Integer.toString(messageNum),
-                                     "message", message));
+                                     "messageNumber", Integer.toString(messageNumber),
+                                     "message", message,
+                                     "needsReceipt", Boolean.toString(needsReceipt)));
+        }
+    }
+
+    public void sendReturnReceipt(String topicKey, String userKey, String originalSenderName, int messageNumber)
+            throws TopicAccessException, SubscriberNotificationException {
+        assert topicKey != null && topicKey.trim().length() > 0;
+        assert userKey != null && userKey.trim().length() > 0;
+        assert originalSenderName != null && originalSenderName.trim().length() > 0;
+
+        List<SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
+        SubscriberData subscriberSendingReturnReceipt = getUserFromSubscriberList(userKey, subscribers);
+        SubscriberData originalSendersData = getUserFromSubscriberListByName(originalSenderName, subscribers);
+        if (subscriberSendingReturnReceipt != null && originalSendersData != null) {
+            //only notify the original sender of the message
+            notifySubscribers(topicKey,
+                              userKey,
+                              Collections.singletonList(originalSendersData),
+                              false /*never self notify on return receipt*/,
+                              toJson("eventType", "receipt",
+                                     "sender", subscriberSendingReturnReceipt.userName,
+                                     "messageNumber", Integer.toString(messageNumber)));
         }
     }
 
     public List<String> getCurrentSubscribers(String topicKey) throws TopicAccessException {
-        List<TopicPersister.SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
+        List<SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
         List<String> retVal = new ArrayList<String>(subscribers.size());
-        for (TopicPersister.SubscriberData subscriberData : subscribers) {
+        for (SubscriberData subscriberData : subscribers) {
             retVal.add(subscriberData.userName);
         }
         return retVal;
@@ -93,12 +115,12 @@ public class ChannelApiTopicManager implements TopicManager {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
 
-        List<TopicPersister.SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
-        TopicPersister.SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
+        List<SubscriberData> subscribers = topicPersister.loadTopicSubscribers(topicKey);
+        SubscriberData sendersData = getUserFromSubscriberList(userKey, subscribers);
         if (sendersData != null) {
+            topicPersister.unsubscribeUserFromTopic(topicKey, userKey);
             notifySubscribers(topicKey, userKey, subscribers, false, /* no need to self notify on disconnect */
                               toJson("eventType", "disconnect", "sender", sendersData.userName));
-            topicPersister.unsubscribeUserFromTopic(topicKey, userKey);
         }
     }
 
@@ -106,10 +128,18 @@ public class ChannelApiTopicManager implements TopicManager {
         return ChannelServiceFactory.getChannelService();
     }
 
-    protected TopicPersister.SubscriberData getUserFromSubscriberList(
-            String userKey, List<TopicPersister.SubscriberData> currentSubscribers) {
-        for (TopicPersister.SubscriberData currentSubscriber : currentSubscribers) {
+    protected SubscriberData getUserFromSubscriberList(String userKey, List<SubscriberData> currentSubscribers) {
+        for (SubscriberData currentSubscriber : currentSubscribers) {
             if (userKey.equals(currentSubscriber.userKey)) {
+                return currentSubscriber;
+            }
+        }
+        return null;
+    }
+
+    protected SubscriberData getUserFromSubscriberListByName(String userName, List<SubscriberData> currentSubscribers) {
+        for (SubscriberData currentSubscriber : currentSubscribers) {
+            if (userName.equals(currentSubscriber.userName)) {
                 return currentSubscriber;
             }
         }
@@ -118,18 +148,31 @@ public class ChannelApiTopicManager implements TopicManager {
 
     protected void notifySubscribers(String topicKey,
                                      String userKey,
-                                     List<TopicPersister.SubscriberData> subscribers,
+                                     List<SubscriberData> subscribers,
                                      boolean selfNotify,
                                      String jsonMessage) throws SubscriberNotificationException {
-        for (TopicPersister.SubscriberData subscriber : subscribers) {
+        Map<String, Exception> sendMessageErrorsBySubscriberName = new HashMap<String, Exception>();
+
+        for (SubscriberData subscriber : subscribers) {
             if (selfNotify || !userKey.equals(subscriber.userKey)) {
                 String subscribersClientId = getClientId(topicKey, subscriber.userKey);
                 try {
                     getChannelService().sendMessage(new ChannelMessage(subscribersClientId, jsonMessage));
                 } catch (Exception e) {
-                    //TODO - handle
+                    sendMessageErrorsBySubscriberName.put(subscriber.userName, e);
                 }
             }
+        }
+
+        if (!sendMessageErrorsBySubscriberName.isEmpty()) {
+            //then not all messages were sent successfully
+            StringBuilder msg = new StringBuilder("Error notifying subscribers: ");
+            for (Map.Entry<String, Exception> userNameAndException : sendMessageErrorsBySubscriberName.entrySet()) {
+                msg.append("\n\t")
+                        .append(userNameAndException.getKey()).append(": ")
+                        .append(userNameAndException.getValue());
+            }
+            throw new SubscriberNotificationException(msg.toString());
         }
     }
 

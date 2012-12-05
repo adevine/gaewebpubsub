@@ -37,6 +37,9 @@ public class BaseServlet extends HttpServlet {
     public static final String TOPIC_LIFETIME_PARAM = "topicLifetime";
     public static final String SELF_NOTIFY_PARAM = "selfNotify";
     public static final String MESSAGE_PARAM = "message";
+    public static final String NEEDS_RECEIPT_PARAM = "needsReceipt";
+    public static final String MESSAGE_NUMBER_PARAM = "messageNumber";
+    public static final String ORIGINAL_SENDER_PARAM = "originalSender";
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
@@ -58,7 +61,6 @@ public class BaseServlet extends HttpServlet {
                                           int maxLength) {
         String retVal = request.getParameter(paramName);
         if (retVal == null) {
-            //TODO - is this the right exception to throw? Ideally throwing an exception returns the proper HTTP status code
             throw new IllegalArgumentException("Missing parameter " + paramName);
         }
         if (!canBeEmpty && retVal.trim().length() == 0)  {

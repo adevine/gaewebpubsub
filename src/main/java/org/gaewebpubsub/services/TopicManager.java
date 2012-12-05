@@ -56,26 +56,52 @@ public interface TopicManager {
      *                      negative, the default lifetime of 2 hours will be used.
      * @param selfNotify    Whether or not messages sent BY this user should also be sent BACK to the user's
      *                      onmessage javascript handler
-     * @return A private channel token for the user in this topic. This will need to be send down to the javascript
-     *         on the client.
+     * @return The full subscriber information about this user for this topic
      * @throws TopicAccessException Thrown if the topic couldn't be loaded or created.
      * @throws SubscriberNotificationException
      *                              Thrown if any existing subscribers couldn't be notified of the new user.
      */
-    String connectUserToTopic(String topicKey, String userKey, String userName, int topicLifetime, boolean selfNotify)
-            throws TopicAccessException, SubscriberNotificationException;
+    SubscriberData connectUserToTopic(String topicKey,
+                                      String userKey,
+                                      String userName,
+                                      int topicLifetime,
+                                      boolean selfNotify) throws TopicAccessException, SubscriberNotificationException;
 
     /**
      * Sends a message to all other subscribers of this topic.
      *
-     * @param topicKey The unique key of the topic that the user already is connected to. May not be null or empty.
-     * @param userKey  The unique identifier of the user. May not be null or empty.
-     * @param message  The message, max of 32K. May not be null.
+     * @param topicKey      The unique key of the topic that the user already is connected to. May not be null or empty.
+     * @param userKey       The unique identifier of the user. May not be null or empty.
+     * @param message       The message, max of 32K. May not be null.
+     * @param messageNumber The number of this message - message numbers are scoped by topic and user.
+     * @param selfNotify    If true, then the sender of this message (indicated by userKey) will also receive a
+     *                      notification of this message in the client.
+     * @param needsReceipt  If true, then other subscribers should send a return receipt message when they receive
+     *                      THIS message in their client.
      * @throws TopicAccessException Thrown if the topic couldn't be loaded or the user isn't part of this topic.
      * @throws SubscriberNotificationException
      *                              Thrown if the message couldn't be sent to all subscribers.
      */
-    void sendMessage(String topicKey, String userKey, String message)
+    void sendMessage(String topicKey,
+                     String userKey,
+                     String message,
+                     int messageNumber,
+                     boolean selfNotify,
+                     boolean needsReceipt) throws TopicAccessException, SubscriberNotificationException;
+
+    /**
+     * Sends a return receipt message to the subscriber who originally sent the message in question.
+     *
+     * @param topicKey           The unique key of the topic that the user already is connected to. May not be null or empty.
+     * @param userKey            The unique ID of the user that is sending the return receipt. May not be null or empty.
+     * @param originalSenderName The NAME of the topic subscriber that originally sent the message. It is this user who
+     *                           requested the return receipt.
+     * @param messageNumber      The number of the message originally sent by originalSender.
+     * @throws TopicAccessException Thrown if the topic couldn't be loaded or the user isn't part of this topic.
+     * @throws SubscriberNotificationException
+     *                              Thrown if the return receipt couldn't be sent to the sender.
+     */
+    void sendReturnReceipt(String topicKey, String userKey, String originalSenderName, int messageNumber)
             throws TopicAccessException, SubscriberNotificationException;
 
     /**

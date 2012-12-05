@@ -21,18 +21,15 @@ import java.util.*;
  * Obviously, this class wouldn't work in a distributed environment. Just used as a simple startup/test class.
  */
 public class InMemoryTopicPersister implements TopicPersister {
-    private Map<String, Integer> topicKeysToMessageNums = new HashMap<String, Integer>();
-
     private Map<String, List<SubscriberData>> subscribersByTopicKey = new HashMap<String, List<SubscriberData>>();
 
     public synchronized boolean createTopic(String topicKey, int topicLifetime) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
 
-        if (topicKeysToMessageNums.containsKey(topicKey)) {
+        if (subscribersByTopicKey.containsKey(topicKey)) {
             return false;
         }
 
-        topicKeysToMessageNums.put(topicKey, 0);
         subscribersByTopicKey.put(topicKey, new ArrayList<SubscriberData>());
         return true;
     }
@@ -48,7 +45,7 @@ public class InMemoryTopicPersister implements TopicPersister {
         assert channelToken != null && channelToken.trim().length() > 0;
 
         //ensure the topic exists
-        if (!topicKeysToMessageNums.containsKey(topicKey)) {
+        if (!subscribersByTopicKey.containsKey(topicKey)) {
             throw new TopicAccessException("Could not find topic " + topicKey);
         }
 
@@ -63,7 +60,7 @@ public class InMemoryTopicPersister implements TopicPersister {
         }
 
         if (!alreadyAdded) {
-            subscribers.add(new SubscriberData(userKey, userName, channelToken, selfNotify));
+            subscribers.add(new SubscriberData(userKey, userName, channelToken, selfNotify, 0));
         }
 
         return !alreadyAdded;
@@ -79,22 +76,20 @@ public class InMemoryTopicPersister implements TopicPersister {
         return retVal;
     }
 
-    public synchronized int persistMessage(String topicKey, String userKey, String userName, String message)
-            throws TopicAccessException {
+    public synchronized void persistMessage(String topicKey,
+                                            String userKey,
+                                            String userName,
+                                            String message,
+                                            int messageNum) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
         assert message != null;
 
-        //we don't need to do any persistence, just get the next messagenum
-        Integer messageNum = topicKeysToMessageNums.get(topicKey);
-        if (messageNum == null) {
+        //we don't need to do any persistence, just check that the topic exists
+        if (!subscribersByTopicKey.containsKey(topicKey)) {
             throw new TopicAccessException("Topic " + topicKey + " not found");
         }
-
-        int retVal = messageNum + 1;
-        topicKeysToMessageNums.put(topicKey, retVal);
-        return retVal;
     }
 
     public synchronized boolean unsubscribeUserFromTopic(String topicKey, String userKey) throws TopicAccessException {
@@ -114,7 +109,6 @@ public class InMemoryTopicPersister implements TopicPersister {
 
         if (subscribers.isEmpty()) {
             //then delete this whole topic - may be no-op if topic never existed
-            topicKeysToMessageNums.remove(topicKey);
             subscribersByTopicKey.remove(topicKey);
         }
 

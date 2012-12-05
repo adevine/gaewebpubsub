@@ -21,7 +21,7 @@
   if (topicKey == null || topicKey.trim().length() == 0 || userName == null || userName.trim().length() == 0) {
       throw new IllegalArgumentException("topicKey and userName parameters are required");
   }
-  String userKey = org.gaewebpubsub.util.SecureHash.hash(userName);
+  String userKey = SecureHash.hash(userName);
 %>
 <html>
 <head>
@@ -43,7 +43,7 @@
 
 </div>
 
-<script type="text/javascript" src="connect?topicKey=<%=Escapes.escapeUrlParam(topicKey)%>&userName=<%=Escapes.escapeUrlParam(userName)%>&userKey=<%=Escapes.escapeUrlParam(userKey)%>&selfNotify=true"></script>
+<script type="text/javascript" src="connect?topicKey=<%=Escapes.escapeUrlParam(topicKey)%>&userName=<%=Escapes.escapeUrlParam(userName)%>&userKey=<%=Escapes.escapeUrlParam(userKey)%>"></script>
 <script type="text/javascript">
   function escapeHtml(text) {
       var div = document.createElement('div');
@@ -53,35 +53,43 @@
 
   function sendMessageToTopic() {
       var messageTextInput = document.getElementById("messageText");
-      gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].sendMessage(messageTextInput.value);
+      var messageNum = gaewps.topics["<%=Escapes.escapeJavaScriptString(topicKey)%>"].sendMessage(
+          messageTextInput.value,
+          false /*we DON'T selfNotify here*/,
+          function returnReceiptCallback(messageNum, senderName) {
+              //another user got our text, so we mark our text as "received" by appending a check mark
+              var msgSpan = document.getElementById("message_" + messageNum + "_You");
+              msgSpan.innerHTML = msgSpan.innerHTML + " " + String.fromCharCode(0x2713); //2713 is check mark
+          }
+      );
+      addMessageToChatDiv(messageNum, "You", messageTextInput.value, "font-weight: bold; color: green");
       messageTextInput.value = "";
   }
 
-  gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].onmessage = function(messageText, messageNumber, senderName) {
+  gaewps.topics["<%=Escapes.escapeJavaScriptString(topicKey)%>"].onmessage = function(messageText, messageNumber, senderName) {
+      addMessageToChatDiv(messageNumber, senderName, messageText, "font-weight: bold; color: blue");
+  };
+
+  function addMessageToChatDiv(messageNumber, senderName, messageText, spanStyle) {
       var chatDiv = document.getElementById("chatDiv");
       var safeSenderName = escapeHtml(senderName);
       var safeMessage = escapeHtml(messageText);
-      var textColor = "blue";
-      //we have selfNotify set to true, so determine if this message is from me
-      if (senderName == "<%=Escapes.escapeJavaScriptString(userName)%>") {
-          safeSenderName = "You";
-          textColor = "green;"
-      }
-      chatDiv.innerHTML = chatDiv.innerHTML + "<span style='font-weight: bold; color: " + textColor + "'>" + messageNumber + ". " + safeSenderName + " wrote</span>: " + safeMessage + "<br/>";
-  };
+      var spanId = "message_" + messageNumber + "_" + safeSenderName;
+      chatDiv.innerHTML = chatDiv.innerHTML + "<span id='" + spanId + "' style='" + spanStyle + "'>" + safeSenderName + " wrote: " + safeMessage + "</span><br/>";
+  }
 
-  gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].onconnected = function(userName) {
+  gaewps.topics["<%=Escapes.escapeJavaScriptString(topicKey)%>"].onconnected = function(userName) {
       var chatDiv = document.getElementById("chatDiv");
       chatDiv.innerHTML = chatDiv.innerHTML + "<b>" + escapeHtml(userName) + " just connected!" + "</b><br/>";
   };
 
-  gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].ondisconnected = function(userName) {
+  gaewps.topics["<%=Escapes.escapeJavaScriptString(topicKey)%>"].ondisconnected = function(userName) {
       var chatDiv = document.getElementById("chatDiv");
       chatDiv.innerHTML = chatDiv.innerHTML + "<b>" + escapeHtml(userName) + " just disconnected!"  + "</b><br/>";
   };
 
   //show the connected subscribers now
-  gaewps.topicManager["<%=Escapes.escapeJavaScriptString(topicKey)%>"].getSubscribers(function(subscribers) {
+  gaewps.topics["<%=Escapes.escapeJavaScriptString(topicKey)%>"].getSubscribers(function(subscribers) {
       var chatDiv = document.getElementById("chatDiv");
       var message = "Users who are in this chat right now: ";
       for (var i = 0; i < subscribers.length; i++) {

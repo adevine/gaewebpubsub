@@ -22,26 +22,6 @@ import java.util.List;
  * an ongoing topic.
  */
 public interface TopicPersister {
-
-    /**
-     * This struct-like class is used to keep information about a subscriber to a topic.
-     */
-    public class SubscriberData {
-        public String userKey;
-        public String userName;
-        public String channelToken;
-        public boolean selfNotify;
-
-        public SubscriberData() { }
-
-        public SubscriberData(String userKey, String userName, String channelToken, boolean selfNotify) {
-            this.userKey = userKey;
-            this.userName = userName;
-            this.channelToken = channelToken;
-            this.selfNotify = selfNotify;
-        }
-    }
-
     /**
      * Creates a topic if one doesn't already exist with the given topicKey.
      *
@@ -77,18 +57,18 @@ public interface TopicPersister {
     List<SubscriberData> loadTopicSubscribers(String topicKey) throws TopicAccessException;
 
     /**
-     * "Persists" the message to disk. Note that an implementing class may decide not to persist the full message, but
-     * instead just return the incremented message number
+     * "Persists" the message to disk. Note that an implementing class may decide not to persist the full message.
      *
-     * @param topicKey The unique key of the topic that the user already is connected to. May not be null or empty.
-     * @param userKey  The unique identifier of the user. May not be null or empty.
-     * @param userName The unique name of the user. May not be null or empty.
-     * @param message  The message, max of 32K. May not be null.
-     * @return An incremented message number. Message numbers start out at zero for a topic, and then are incremented
-     *         for each message sent.
+     * @param topicKey   The unique key of the topic that the user already is connected to. May not be null or empty.
+     * @param userKey    The unique identifier of the user. May not be null or empty.
+     * @param userName   The unique name of the user. May not be null or empty.
+     * @param message    The message, max of 32K. May not be null.
+     * @param messageNum The user-specific number for this message (clients should send monotonically increasing
+     *                   message numbers for each user's message)
      * @throws TopicAccessException Thrown if the topic does not exist.
      */
-    int persistMessage(String topicKey, String userKey, String userName, String message) throws TopicAccessException;
+    void persistMessage(String topicKey, String userKey, String userName, String message, int messageNum)
+            throws TopicAccessException;
 
     /**
      * Unsubscribes a user from the specified topic. Once a topic has no more subscribers it may be deleted.

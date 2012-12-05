@@ -29,9 +29,20 @@
     </servlet-mapping>
 
     <servlet>
+        <servlet-name>receivedServlet</servlet-name>
+        <servlet-class>org.gaewebpubsub.web.ReceivedServlet</servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>receivedServlet</servlet-name>
+        <url-pattern>/received/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
         <servlet-name>disconnectServlet</servlet-name>
         <servlet-class>org.gaewebpubsub.web.DisconnectServlet</servlet-class>
-        <load-on-startup>3</load-on-startup>
+        <load-on-startup>4</load-on-startup>
     </servlet>
 
     <servlet-mapping>
@@ -42,7 +53,7 @@
     <servlet>
         <servlet-name>subscribersServlet</servlet-name>
         <servlet-class>org.gaewebpubsub.web.SubscribersServlet</servlet-class>
-        <load-on-startup>4</load-on-startup>
+        <load-on-startup>5</load-on-startup>
     </servlet>
 
     <servlet-mapping>
@@ -62,6 +73,10 @@
     <filter-mapping>
         <filter-name>validationFilter</filter-name>
         <servlet-name>sendMessageServlet</servlet-name>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>validationFilter</filter-name>
+        <servlet-name>receivedServlet</servlet-name>
     </filter-mapping>
     <filter-mapping>
         <filter-name>validationFilter</filter-name>

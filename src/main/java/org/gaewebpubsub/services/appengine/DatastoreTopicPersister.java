@@ -17,15 +17,15 @@ package org.gaewebpubsub.services.appengine;
 
 import com.google.appengine.api.datastore.*;
 import org.gaewebpubsub.services.Defaults;
+import org.gaewebpubsub.services.SubscriberData;
 import org.gaewebpubsub.services.TopicAccessException;
 import org.gaewebpubsub.services.TopicPersister;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The DatastoreTopicPersister uses the App Engine DatastoreService to persist data.
- *
- * TODO - check that right exceptions are thrown if necessary (like when topic doesn't exist)
  */
 public class DatastoreTopicPersister implements TopicPersister {
     //Entity Kinds
@@ -40,6 +40,7 @@ public class DatastoreTopicPersister implements TopicPersister {
     private static final String USER_NAME_PROP = "userName";
     private static final String CHANNEL_TOKEN_PROP = "channelToken";
     private static final String SELF_NOTIFY_PROP = "selfNotify";
+    private static final String IS_DELETED_PROP = "isDeleted";
 
     private static final String TOPIC_KEY_PROP = "topicKey";
     private static final String USER_KEY_PROP = "userKey";
@@ -62,7 +63,6 @@ public class DatastoreTopicPersister implements TopicPersister {
                     } catch (EntityNotFoundException enfe) {
                         //then need to create topic
                         Entity topicEntity = new Entity(TOPIC_KIND, topicKey);
-                        topicEntity.setProperty(MESSAGE_NUM_PROP, 0);
                         topicEntity.setProperty(EXPIRATION_TIME_PROP, System.currentTimeMillis() + (topicLifetime * 60000L));
                         datastore.put(topicEntity);
                         return true;
@@ -88,14 +88,20 @@ public class DatastoreTopicPersister implements TopicPersister {
             return new TransactionRunner<Boolean>(getDatastore()) {
                 protected Boolean txnBlock() {
                     try {
-                        datastore.get(subscriberEntityKey(topicKey, userKey));
+                        Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
+                        if ((Boolean)subscriberEntity.getProperty(IS_DELETED_PROP)) {
+                            //if deleted then treat it like it wasn't found in the first place
+                            throw new EntityNotFoundException(subscriberEntity.getKey());
+                        }
                         return false; //subscriber already existed
                     } catch (EntityNotFoundException enfe) {
                         //then need to create subscriber
                         Entity subscriberEntity = new Entity(SUBSCRIBER_KIND, userKey, topicEntityKey(topicKey));
+                        subscriberEntity.setProperty(IS_DELETED_PROP, false);
                         subscriberEntity.setProperty(USER_NAME_PROP, userName);
-                        subscriberEntity.setProperty(CHANNEL_TOKEN_PROP, channelToken);
-                        subscriberEntity.setProperty(SELF_NOTIFY_PROP, selfNotify);
+                        subscriberEntity.setUnindexedProperty(CHANNEL_TOKEN_PROP, channelToken);
+                        subscriberEntity.setUnindexedProperty(SELF_NOTIFY_PROP, selfNotify);
+                        subscriberEntity.setUnindexedProperty(MESSAGE_NUM_PROP, 0);
                         datastore.put(subscriberEntity);
                         return true;
                     }
@@ -106,7 +112,7 @@ public class DatastoreTopicPersister implements TopicPersister {
         }
     }
 
-    public List<TopicPersister.SubscriberData> loadTopicSubscribers(String topicKey) throws TopicAccessException {
+    public List<SubscriberData> loadTopicSubscribers(String topicKey) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
 
         List<SubscriberData> retVal = new ArrayList<SubscriberData>();
@@ -116,10 +122,13 @@ public class DatastoreTopicPersister implements TopicPersister {
         try {
             PreparedQuery preparedQuery = datastore.prepare(new Query(SUBSCRIBER_KIND, topicEntityKey(topicKey)));
             for (Entity subscriberResult : preparedQuery.asIterable()) {
-                retVal.add(new SubscriberData(subscriberResult.getKey().getName(),
-                                              (String) subscriberResult.getProperty(USER_NAME_PROP),
-                                              (String) subscriberResult.getProperty(CHANNEL_TOKEN_PROP),
-                                              (Boolean) subscriberResult.getProperty(SELF_NOTIFY_PROP)));
+                if (!Boolean.TRUE.equals(subscriberResult.getProperty(IS_DELETED_PROP))) {
+                    retVal.add(new SubscriberData(subscriberResult.getKey().getName(),
+                                                  (String) subscriberResult.getProperty(USER_NAME_PROP),
+                                                  (String) subscriberResult.getProperty(CHANNEL_TOKEN_PROP),
+                                                  (Boolean) subscriberResult.getProperty(SELF_NOTIFY_PROP),
+                                                  ((Number)subscriberResult.getProperty(MESSAGE_NUM_PROP)).intValue()));
+                }
             }
             return retVal;
         } catch (Exception e) {
@@ -127,41 +136,39 @@ public class DatastoreTopicPersister implements TopicPersister {
         }
     }
 
-    public int persistMessage(final String topicKey, final String userKey, final String userName, final String message)
-            throws TopicAccessException {
+    public void persistMessage(final String topicKey,
+                               final String userKey,
+                               final String userName,
+                               final String message,
+                               final int messageNum) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
         assert message != null;
 
-        //TODO - this is definitely a bottleneck - maybe make monotonically increasing message nums optional
         try {
-            return new TransactionRunner<Integer>(getDatastore()) {
-                protected Integer txnBlock(Transaction txn) {
+            new TransactionRunner<Void>(getDatastore()) {
+                protected Void txnBlock(Transaction txn) {
                     try {
-                        Key topicEntityKey = topicEntityKey(topicKey);
-                        Entity topicEntity = datastore.get(topicEntityKey);
-                        int currentMessageNum = ((Number) topicEntity.getProperty(MESSAGE_NUM_PROP)).intValue();
-                        //update the message num and save
-                        currentMessageNum++;
-                        topicEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum);
-                        datastore.put(topicEntity);
+                        Key subscriberEntityKey = subscriberEntityKey(topicKey, userKey);
+                        Entity subscriberEntity = datastore.get(subscriberEntityKey);
+                        subscriberEntity.setUnindexedProperty(MESSAGE_NUM_PROP, messageNum);
+                        datastore.put(subscriberEntity);
                         txn.commit();
 
                         if (shouldSaveMessages) {
                             Entity messageEntity = new Entity(MESSAGE_KIND);
-                            messageEntity.setProperty(TOPIC_KEY_PROP, topicEntityKey);
+                            messageEntity.setProperty(TOPIC_KEY_PROP, topicEntityKey(topicKey));
                             messageEntity.setProperty(USER_KEY_PROP, userKey);
                             messageEntity.setProperty(USER_NAME_PROP, userName);
-                            messageEntity.setProperty(MESSAGE_TEXT_PROP, new Text(message));
-                            messageEntity.setProperty(MESSAGE_NUM_PROP, currentMessageNum);
+                            messageEntity.setUnindexedProperty(MESSAGE_TEXT_PROP, new Text(message));
+                            messageEntity.setUnindexedProperty(MESSAGE_NUM_PROP, messageNum);
                             datastore.put(messageEntity);
                         }
-
-                        return currentMessageNum;
                     } catch (EntityNotFoundException enfe) {
                         throw new TopicAccessException("Topic " + topicKey + " not found");
                     }
+                    return null;
                 }
             }.run();
         } catch (Exception e) {
@@ -178,8 +185,9 @@ public class DatastoreTopicPersister implements TopicPersister {
                 protected Boolean txnBlock() {
                     try {
                         Entity subscriberEntity = datastore.get(subscriberEntityKey(topicKey, userKey));
-                        //TODO - maybe mark as deleted instead of actual delete?
-                        datastore.delete(subscriberEntity.getKey());
+                        //mark the entity as deleted and resave
+                        subscriberEntity.setProperty(IS_DELETED_PROP, true);
+                        datastore.put(subscriberEntity);
                         return true;
                     } catch (EntityNotFoundException enfe) {
                         return false;

@@ -15,6 +15,7 @@
  */
 package org.gaewebpubsub.web;
 
+import org.gaewebpubsub.services.SubscriberData;
 import org.gaewebpubsub.services.TopicManager;
 import org.gaewebpubsub.util.Escapes;
 
@@ -22,10 +23,7 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.IOException;
-import java.util.Scanner;
-import java.util.regex.Matcher;
 
 /**
  * ConnectServlet is called when a page includes the "javascript" to start up a connection to a topic. This servlet
@@ -58,8 +56,8 @@ public class ConnectServlet extends BaseServlet {
         String validationToken = req.getParameter(ValidationFilter.VALIDATION_PARAM_NAME);
 
         //add user to the topic and return filtered JS file
-        String userChannelToken = getTopicManager().connectUserToTopic(topicKey, userKey, userName,
-                                                                       topicLifetime, selfNotify);
+        SubscriberData subscriberData =
+                getTopicManager().connectUserToTopic(topicKey, userKey, userName, topicLifetime, selfNotify);
 
         //JSP file needs access to the following pieces of data
         String validationParam = validationToken == null ?
@@ -70,34 +68,10 @@ public class ConnectServlet extends BaseServlet {
         req.setAttribute("validationParam", Escapes.escapeJavaScriptString(validationParam));
         req.setAttribute("topicKey", Escapes.escapeJavaScriptString(topicKey));
         req.setAttribute("userKey", Escapes.escapeJavaScriptString(userKey));
-        req.setAttribute("channelToken", Escapes.escapeJavaScriptString(userChannelToken));
+        req.setAttribute("userName", Escapes.escapeJavaScriptString(userName));
+        req.setAttribute("channelToken", Escapes.escapeJavaScriptString(subscriberData.channelToken));
+        req.setAttribute("startingMessageNum", subscriberData.messageCount);
 
         getServletContext().getRequestDispatcher("/WEB-INF/pages/connectTemplate.jsp").forward(req, resp);
     }
-
-    protected String filterConnectTemplate(String template,
-                                           String baseUrl,
-                                           String validationToken,
-                                           String topicKey,
-                                           String userKey,
-                                           String userChannelToken) {
-        String validationParam = validationToken == null ?
-                                 "" :
-                                 "&" + ValidationFilter.VALIDATION_PARAM_NAME
-                                 + "=" + Escapes.escapeUrlParam(validationToken);
-
-        template = template.replaceAll("@BASE_PATH@",
-                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(baseUrl)));
-        template = template.replaceAll("@VALIDATION_PARAM@",
-                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(validationParam)));
-        template = template.replaceAll("@TOPIC_KEY@",
-                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(topicKey)));
-        template = template.replaceAll("@USER_KEY@",
-                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(userKey)));
-        template = template.replaceAll("@CHANNEL_TOKEN@",
-                                       Matcher.quoteReplacement(Escapes.escapeJavaScriptString(userChannelToken)));
-
-        return template;
-    }
-
 }
