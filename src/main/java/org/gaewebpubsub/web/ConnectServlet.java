@@ -52,12 +52,11 @@ public class ConnectServlet extends BaseServlet {
         } catch (Exception e) {
             //OK, lifetime stays at the default
         }
-        boolean selfNotify = Boolean.parseBoolean(req.getParameter(SELF_NOTIFY_PARAM)); //defaults to false
         String validationToken = req.getParameter(ValidationFilter.VALIDATION_PARAM_NAME);
 
         //add user to the topic and return filtered JS file
         SubscriberData subscriberData =
-                getTopicManager().connectUserToTopic(topicKey, userKey, userName, topicLifetime, selfNotify);
+                getTopicManager().connectUserToTopic(topicKey, userKey, userName, topicLifetime);
 
         //JSP file needs access to the following pieces of data
         String validationParam = validationToken == null ?

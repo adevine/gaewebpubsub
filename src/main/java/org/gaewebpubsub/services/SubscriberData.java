@@ -22,16 +22,14 @@ public class SubscriberData {
     public String userKey;
     public String userName;
     public String channelToken;
-    public boolean selfNotify;
     public int messageCount;
 
     public SubscriberData() { }
 
-    public SubscriberData(String userKey, String userName, String channelToken, boolean selfNotify, int messageCount) {
+    public SubscriberData(String userKey, String userName, String channelToken, int messageCount) {
         this.userKey = userKey;
         this.userName = userName;
         this.channelToken = channelToken;
-        this.selfNotify = selfNotify;
         this.messageCount = messageCount;
     }
 }

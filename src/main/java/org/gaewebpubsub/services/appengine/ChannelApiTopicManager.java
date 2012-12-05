@@ -31,11 +31,7 @@ public class ChannelApiTopicManager implements TopicManager {
 
     public void setTopicPersister(TopicPersister topicPersister) { this.topicPersister = topicPersister; }
 
-    public SubscriberData connectUserToTopic(String topicKey,
-                                             String userKey,
-                                             String userName,
-                                             int topicLifetime,
-                                             boolean selfNotify)
+    public SubscriberData connectUserToTopic(String topicKey, String userKey, String userName, int topicLifetime)
             throws TopicAccessException, SubscriberNotificationException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
@@ -47,8 +43,8 @@ public class ChannelApiTopicManager implements TopicManager {
         SubscriberData thisUsersData = getUserFromSubscriberList(userKey, currentSubscribers);
         if (thisUsersData == null) {
             String channelToken = getChannelService().createChannel(getClientId(topicKey, userKey), topicLifetime);
-            topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken, selfNotify);
-            thisUsersData = new SubscriberData(userKey, userName, channelToken, selfNotify, 0);
+            topicPersister.addUserToTopic(topicKey, userKey, userName, channelToken);
+            thisUsersData = new SubscriberData(userKey, userName, channelToken, 0);
         }
 
         //notify OTHER users that this user was added

@@ -54,18 +54,13 @@ public interface TopicManager {
      *                      May not be null or empty string.
      * @param topicLifetime The time, in minutes, that the topic will exist for. Max of 24 * 60 minutes. If 0 or
      *                      negative, the default lifetime of 2 hours will be used.
-     * @param selfNotify    Whether or not messages sent BY this user should also be sent BACK to the user's
-     *                      onmessage javascript handler
      * @return The full subscriber information about this user for this topic
      * @throws TopicAccessException Thrown if the topic couldn't be loaded or created.
      * @throws SubscriberNotificationException
      *                              Thrown if any existing subscribers couldn't be notified of the new user.
      */
-    SubscriberData connectUserToTopic(String topicKey,
-                                      String userKey,
-                                      String userName,
-                                      int topicLifetime,
-                                      boolean selfNotify) throws TopicAccessException, SubscriberNotificationException;
+    SubscriberData connectUserToTopic(String topicKey, String userKey, String userName, int topicLifetime)
+            throws TopicAccessException, SubscriberNotificationException;
 
     /**
      * Sends a message to all other subscribers of this topic.

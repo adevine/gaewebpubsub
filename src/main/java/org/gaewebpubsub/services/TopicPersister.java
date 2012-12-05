@@ -40,11 +40,10 @@ public interface TopicPersister {
      * @param userName     The display name of the user. May not be null or empty.
      * @param channelToken The channel token that the user will use to subscribe to the topic on the client side
      *                     (e.g. the Channel APIs channel token). May not be null or empty.
-     * @param selfNotify   Whether or not the user should be notified of his OWN incoming messages
      * @return true if the user was newly added, false if they were already subscribed.
      * @throws TopicAccessException Thrown if the topic doesn't exist or couldn't be loaded.
      */
-    boolean addUserToTopic(String topicKey, String userKey, String userName, String channelToken, boolean selfNotify)
+    boolean addUserToTopic(String topicKey, String userKey, String userName, String channelToken)
             throws TopicAccessException;
 
     /**

@@ -39,7 +39,6 @@ public class DatastoreTopicPersister implements TopicPersister {
 
     private static final String USER_NAME_PROP = "userName";
     private static final String CHANNEL_TOKEN_PROP = "channelToken";
-    private static final String SELF_NOTIFY_PROP = "selfNotify";
     private static final String IS_DELETED_PROP = "isDeleted";
 
     private static final String TOPIC_KEY_PROP = "topicKey";
@@ -77,8 +76,7 @@ public class DatastoreTopicPersister implements TopicPersister {
     public boolean addUserToTopic(final String topicKey,
                                   final String userKey,
                                   final String userName,
-                                  final String channelToken,
-                                  final boolean selfNotify) throws TopicAccessException {
+                                  final String channelToken) throws TopicAccessException {
         assert topicKey != null && topicKey.trim().length() > 0;
         assert userKey != null && userKey.trim().length() > 0;
         assert userName != null && userName.trim().length() > 0;
@@ -100,7 +98,6 @@ public class DatastoreTopicPersister implements TopicPersister {
                         subscriberEntity.setProperty(IS_DELETED_PROP, false);
                         subscriberEntity.setProperty(USER_NAME_PROP, userName);
                         subscriberEntity.setUnindexedProperty(CHANNEL_TOKEN_PROP, channelToken);
-                        subscriberEntity.setUnindexedProperty(SELF_NOTIFY_PROP, selfNotify);
                         subscriberEntity.setUnindexedProperty(MESSAGE_NUM_PROP, 0);
                         datastore.put(subscriberEntity);
                         return true;
@@ -126,7 +123,6 @@ public class DatastoreTopicPersister implements TopicPersister {
                     retVal.add(new SubscriberData(subscriberResult.getKey().getName(),
                                                   (String) subscriberResult.getProperty(USER_NAME_PROP),
                                                   (String) subscriberResult.getProperty(CHANNEL_TOKEN_PROP),
-                                                  (Boolean) subscriberResult.getProperty(SELF_NOTIFY_PROP),
                                                   ((Number)subscriberResult.getProperty(MESSAGE_NUM_PROP)).intValue()));
                 }
             }
